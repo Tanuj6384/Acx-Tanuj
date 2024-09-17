@@ -1,0 +1,61 @@
+----------------------------------------------------------------------------------------------------
+CODE TYPE 1
+----------------------------------------------------------------------------------------------------
+// In Table
+
+//Acx_Tanuj
+        modify("Phone No.")
+        {
+            trigger OnBeforeValidate()
+            begin
+                IF "Phone No." <> '' THEN
+                    IF STRLEN("Phone No.") <> 10 THEN
+                        ERROR('Phone No. digit length should be less than or equal to 10');
+
+
+                
+                TempNo := "Phone No.";
+                FOR Inte := 1 TO STRLEN(TempNo) DO BEGIN
+                    StrPH := TempNo[Inte] IN [' ', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '_', '=', '+', ';', ':', '>', '<', '/', '?', ',', '.'];
+                    IF StrPH THEN
+                        ERROR('Space and special charecters are not allowed in Phone No.');
+                END;
+            end;
+        }
+//Acx_Tanuj	
+		
+				
+		Var 
+		 StrPH: Boolean;
+		 TempNo: Text;
+		 Inte: Integer;
+
+
+----------------------------------------------------------------------------------------------------
+CODE TYPE 2
+----------------------------------------------------------------------------------------------------
+// In PAGE
+
+//Acx_Tanuj
+  field("Mobile No."; Rec."Mobile No.")
+                {
+                    ToolTip = 'Specifies the value of the Mobile No. field.';
+                    Editable = EditField;
+
+                    trigger OnValidate()
+                    begin
+                        Length := StrLen(Rec."Mobile No.");
+                        if (Length <> 10) then
+                            Error('Length Should be 10 Digit');
+
+                        Pos := CopyStr(Rec."Mobile No.", 1, 1);
+                        if (Pos IN ['1' .. '5']) then
+                            Error('Intial Should be 6,7,8,9');
+                    end;
+                }			
+//Acx_Tanuj
+			
+			Var
+			 Length: Integer;       
+			 Pos: Text;
+			

@@ -1,0 +1,46 @@
+Table
+
+
+
+
+Page
+
+
+
+
+Report
+report 60001 TaxInvoice
+
+
+TableExtension 
+tableextension 50030 Company_info_Ext extends "Company Information"
+
+
+
+PageExtension
+pageextension 50030 CompanyInfo extends "Company Information"
+
+
+
+madiha ids
+************
+add field 
+pageextension 50009 PurchaseOrderSuformExt extends "Purchase Order Subform"
+
+
+addafter("Item Reference No.")
+        {
+            field("Quality Required"; Rec."Quality Required")
+            {
+                ApplicationArea = all;
+            }
+
+        }
+		
+add field	
+tableextension 50006 PurchaseLineExt extends "Purchase Line"
+
+field(50005; "Quality Required"; Boolean)
+        {
+            Description = 'Quality Required';
+        }

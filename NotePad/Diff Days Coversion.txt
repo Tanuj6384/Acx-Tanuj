@@ -1,0 +1,1 @@
+=Floor(DateDiff("d", Fields!Posting_Date.Value, Fields!Document_Date.Value) / 365) & " years, " & Floor((DateDiff("d", Fields!Posting_Date.Value, Fields!Document_Date.Value) Mod 365) / 30) & " months, " & (DateDiff("d", Fields!Posting_Date.Value, Fields!Document_Date.Value) Mod 365) Mod 30 & " days"
