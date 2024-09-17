@@ -1,0 +1,23 @@
+Go to G-Drive
+      Folder[WELLADMSPROD]
+	  check size [WEELADMSPROD_log]
+	  
+	  
+	  
+	Log Shrink Query---------------------
+------------------------------------------------------------	  
+USE WELLADMSPROD;  
+GO  
+-- Truncate the log by changing the database recovery model to SIMPLE.
+ALTER DATABASE WELLADMSPROD  
+SET RECOVERY SIMPLE;  
+GO  
+-- Shrink the truncated log file to 1 MB.  
+DBCC SHRINKFILE ('7002_log', 1);  
+GO  
+-- Reset the database recovery model.
+ALTER DATABASE WELLADMSPROD  
+SET RECOVERY FULL;  
+GO
+-------------------------------------------------------------
+

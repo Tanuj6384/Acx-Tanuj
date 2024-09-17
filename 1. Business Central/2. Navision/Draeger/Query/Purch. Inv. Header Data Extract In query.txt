@@ -1,0 +1,25 @@
+ SELECT 
+    	No_, 
+    	Description, 
+	Quantity,
+    	[Unit of Measure Code],
+	[Direct Unit Cost],	
+   	[Location Code],
+	[Unit Price (LCY)],
+	[Line Discount _],
+	[Line No_],
+	[GST Group Code],
+	[HSN_SAC Code],
+	[Product Group Code],
+	[Line Amount],
+	[Document No_],
+	[Line No_],
+	[Posting Group],
+	[Assessable Value],
+    CASE 
+       WHEN Type ='1' THEN 'GL'                                     
+       WHEN Type ='2' THEN 'Item'                      
+    ELSE '' 
+    END AS Type
+FROM [Draeger India Pvt Ltd$Purch_ Inv_ Line]
+WHERE No_ IN ('8606800','M30146', 'MP01913', 'MP01915');

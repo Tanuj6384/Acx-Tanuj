@@ -1,0 +1,2529 @@
+OBJECT Codeunit 99008902 POS Post Utility
+{
+  OBJECT-PROPERTIES
+  {
+    Date=09/08/21;
+    Time=17:02:27;
+    Modified=Yes;
+    Version List=LS5.05,AX,VAT;
+  }
+  PROPERTIES
+  {
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      Text000@1200070000 : TextConst 'ENU="Service Charge "';
+      POSTransaction@1000 : Record 99008980;
+      POSPaymentEntry@1001 : Record 99008981;
+      POSCardEntry@1002 : Record 99008987;
+      POSSalesEntry@1003 : Record 99008981;
+      POSInfoEntry@1004 : Record 99008982;
+      POSMixMatchEntry@1005 : Record 99008983;
+      POSIncomeExpenseEntry@1006 : Record 99008981;
+      POSInventoryEntry@1031 : Record 99008981;
+      Transaction@1007 : Record 99001472;
+      SalesEntry@1008 : Record 99001473;
+      PaymentEntry@1009 : Record 99001474;
+      TenderDeclEntry@1010 : Record 99001465;
+      CouponEntry@1012 : Record 99001477;
+      InfoEntry@1028 : Record 99001478;
+      InventoryEntry@1032 : Record 99001490;
+      TenderTypes@1013 : Record 99001462;
+      TenderTypeTable@1014 : Record 99001466;
+      Item@1015 : Record 27;
+      ItemVariant@1016 : Record 5401;
+      POSTerminal@1017 : Record 99001471;
+      Store@1018 : Record 99001470;
+      RetailLocationSetup@1019 : Record 99001512;
+      POSTransLineTmp@1020 : TEMPORARY Record 99008981;
+      BackOfficeSetup@1021 : Record 10000700;
+      WorkShiftSetup@1100409002 : Record 99001506;
+      WorkShift@1100409001 : Record 99001507;
+      WorkShiftEntry@1100409000 : Record 99001508;
+      tmpDealEntry@1100409005 : TEMPORARY Record 99001460;
+      tmpCouponHeader@10012000 : TEMPORARY Record 99001621;
+      UnitOfMeasureMgt@1100409004 : Codeunit 5402;
+      POSFunc@1100409003 : Codeunit 99008900;
+      StatementCode@1022 : Code[20];
+      Difference@1023 : Decimal;
+      Sign@1024 : Integer;
+      AffectsNextLastInTrans@10012001 : Boolean;
+      Globals@10012002 : OCX "{3478A2C5-F354-11D3-AFA0-005004C33BAF}:'LSRetail Globals Control (Landsteinar Strengur)'";
+      ALRetailUtils@1000000013 : Codeunit 72008;
+      "@@Loyalty@@"@1000000012 : Integer;
+      RunObjSetup@1000000011 : Record 99008926;
+      POSCouponEntry@1000000010 : Record 72109;
+      PosTransLineMM@1000000009 : Record 72314;
+      POSMMEntryMM@1000000008 : Record 72315;
+      POSMMEntry@1000000007 : Record 99008983;
+      POSMMEntryTmp@1000000006 : TEMPORARY Record 99008983;
+      POSMMEntryTmp2@1000000005 : TEMPORARY Record 99008983;
+      CancelledBarcode@1000000004 : Record 50002;
+      Barcodes@1000000003 : Record 99001451;
+      DamasMgt@1000000002 : Codeunit 50000;
+      gRecStore@1000000001 : Record 99001470;
+      gRecRespCenter@1000000000 : Record 5714;
+      RetailVariantEntry@1000000014 : Record 50259;
+
+    PROCEDURE ProcessTransaction@16(VAR Rec@1000 : Record 99008980) : Integer;
+    VAR
+      PosFuncProfile@1200070002 : Record 99001515;
+      OfferPosCalc@1200070000 : Record 99001561;
+      StatisticsUtils@1001 : Codeunit 99001461;
+      PosFunc@1002 : Codeunit 99008900;
+      TSUtil@1004 : Codeunit 99008909;
+      PosOrderConn@1200070001 : Codeunit 99008904;
+      VoucherEntries@1200070003 : Record 99001467;
+      VoucherEntries2@1200070004 : Record 99001467;
+      LoyaltyPointsTrans@1200070006 : Record 99001495;
+      LoyaltyPointsTrans2@1200070005 : Record 99001495;
+      InUseOnPos@10012000 : Record 10001214;
+      HospTransStatus@10012001 : Record 10001215;
+      TransactionMarketRates@1000000000 : Record 50004;
+      InfoUpdateUtil@1000000001 : Codeunit 72025;
+      POSAddress@1170000003 : Record 72009;
+      RecTSE@1170000002 : Record 99001473;
+      TotVat@1170000001 : Decimal;
+      RecTIEE@1170000000 : Record 99001475;
+    BEGIN
+      //ProcessTransaction
+
+      POSTerminal.GET(Rec."POS Terminal No.");
+      IF NOT POSTransaction.RECORDLEVELLOCKING THEN
+        POSTransaction.LOCKTABLE(TRUE,TRUE);
+      IF NOT POSPaymentEntry.RECORDLEVELLOCKING THEN
+        POSPaymentEntry.LOCKTABLE(TRUE,TRUE);
+      IF NOT Transaction.RECORDLEVELLOCKING THEN
+        Transaction.LOCKTABLE(TRUE,TRUE);
+
+      tmpDealEntry.DELETEALL;
+
+      Store.GET(Rec."Store No.");
+      IF Rec."Original Date" <> TODAY THEN BEGIN
+        Rec."Trans. Date" := TODAY;
+        Rec."Original Date" := Rec."Trans. Date";
+        Rec."Trans Time" := TIME;
+        IF (Store."Store Open After Midnight") AND (Rec."Trans Time" <= Store."Store Open to") THEN
+          Rec."Trans. Date" := CALCDATE('<-1D>',Rec."Trans. Date");
+      END;
+
+      POSTransaction := Rec;
+
+      //doc wdSal-017 -
+      UpdateOrder;
+      //doc wdSal-017 +
+
+      IF POSTransaction."Trans. Date" <> TODAY THEN
+        BEGIN
+          POSTransaction."Trans. Date" := TODAY;
+          POSTransaction."Trans Time":=TIME; //vvn 090409 ADDED
+        END;
+
+      //VVN - 9Jan2013
+      IF POSTransaction."Trans Time" <> TIME THEN
+          POSTransaction."Trans Time":=TIME;
+      //VVN + 9Jan2013
+
+
+      RetailLocationSetup.GET(POSTransaction."Store No.");
+      IF NOT PosFuncProfile.GET(Globals.GetValue('LSFUNCPROFILE')) THEN  //LS5.05-05
+        IF NOT PosFuncProfile.GET(Store."POS Func. Profile") THEN
+          CLEAR(PosFuncProfile);
+
+      // LOY1.0 Added For Loyality and Coupons
+      IF NOT PosFuncProfile.GET(Store."POS Func. Profile") THEN
+        PosFuncProfile.GET(Store."No.");
+      // Run Object Pre Posting
+      IF PosFuncProfile."Run Object Pre. Posting" <> '' THEN BEGIN
+        RunObjSetup.GET(PosFuncProfile."Run Object Pre. Posting");
+        PosFunc.RunObject(RunObjSetup,'PREPOST',Rec."Receipt No.",'');
+      END;
+
+      //added For Coupons
+      ConvertCouponLines;
+      // LOY1.0 End ....
+
+      IF (POSTransaction."Document No." <> '') THEN
+        BEGIN
+          PosOrderConn.DeleteSH(POSTransaction."Receipt No.");
+          POSTransaction."Document No." := '';
+        END;
+
+      POSPaymentEntry.SETCURRENTKEY("Receipt No.","Entry Type");
+      POSPaymentEntry.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSPaymentEntry.SETRANGE("Entry Type",POSPaymentEntry."Entry Type"::Payment);
+
+      POSSalesEntry.SETCURRENTKEY("Receipt No.","Entry Type",Number,"Card/Customer/Coup.Item No","Unit of Measure");
+      POSSalesEntry.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSSalesEntry.SETRANGE("Entry Type",POSSalesEntry."Entry Type"::Item);
+
+      POSIncomeExpenseEntry.SETCURRENTKEY("Receipt No.","Entry Type");
+      POSIncomeExpenseEntry.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSIncomeExpenseEntry.SETRANGE("Entry Type",POSSalesEntry."Entry Type"::IncomeExpense);
+
+      POSInfoEntry.SETRANGE("Receipt No.",Rec."Receipt No.");
+      IF POSTransaction."Sale Is Return Sale" THEN
+        Sign := -1
+      ELSE
+        Sign := 1;
+
+      //Mod ?? IH
+      IF POSTransaction ."Sales Order No." = '' THEN
+        POSTransaction."Sales Order No." := GetSalesOrder;
+      //End
+
+      Transaction."Transaction Type" := POSTransaction."Transaction Type";
+      BackOfficeSetup.GET;
+      InsertTransaction(POSTransaction);
+      IF (POSTransaction."Entry Status" = POSTransaction."Entry Status"::" ") OR
+         (POSTransaction."Entry Status" = POSTransaction."Entry Status"::Training) THEN BEGIN
+        GetShift(Transaction);
+        CASE POSTransaction."Transaction Type" OF
+          POSTransaction."Transaction Type"::Sales,
+          POSTransaction."Transaction Type"::Payment :
+            BEGIN
+              InsertPaymentTransaction;
+              InsertSalesTransaction;
+              InsertIncomeExpenseTransaction;
+              InsertTextTransaction;
+            END;
+
+          POSTransaction."Transaction Type"::"Tender Decl.":
+            InsertTenderDeclTransaction;
+
+          POSTransaction."Transaction Type"::"Remove Tender",POSTransaction."Transaction Type"::"Float Entry" :
+            BEGIN
+              InsertPaymentTransaction;
+              RemoveAdd;
+            END;
+          POSTransaction."Transaction Type"::NegAdj,POSTransaction."Transaction Type"::PhysInv :
+            InsertInventoryTransaction;
+        END;
+
+        InsertInfoTransaction;
+        CheckBalance;
+      END;
+
+      IF POSTransaction."Entry Status" = POSTransaction."Entry Status"::Training THEN BEGIN
+        IF PosFuncProfile."Backup Training Trans." THEN
+          PosFunc.CopyToVoidedTrans(Rec);
+        Transaction."Entry Status" := Transaction."Entry Status"::Training;
+      END;
+
+      IF POSTransaction."Entry Status" = POSTransaction."Entry Status"::Voided THEN BEGIN
+        PosFunc.CopyToVoidedTrans(Rec);
+        Transaction."Entry Status" := Transaction."Entry Status"::Voided;
+      END;
+
+      //RN239
+      InsertAddress;
+      //End
+
+      // LOY1.0 Start ....
+      // Run Object After Posting
+      IF PosFuncProfile."Run Object After Posting" <> '' THEN BEGIN
+        RunObjSetup.GET(PosFuncProfile."Run Object After Posting");
+        PosFunc.RunObject(RunObjSetup,'AFTERPOST',FORMAT(Transaction."Transaction No."),'');
+      END;
+      //LOY1.0 End ....
+      // GITL VL 311017 CR-3 +
+      IF POSAddress.GET(POSTransaction."Receipt No.") THEN
+        Transaction."Manual Invoice No.":=POSAddress."Manual Invoice No.";
+      // GITL VL 310117 CR-3 -
+      // GITL VL 081117 +
+      TotVat:=0;
+      RecTSE.RESET;
+      RecTSE.SETRANGE("Store No.",Transaction."Store No.");
+      RecTSE.SETRANGE("POS Terminal No.",Transaction."POS Terminal No.");
+      RecTSE.SETRANGE("Transaction No.",Transaction."Transaction No.");
+      RecTSE.SETFILTER("VAT Amount",'<>%1',0);
+      IF RecTSE.FINDFIRST THEN REPEAT
+        TotVat+=RecTSE."VAT Amount";
+      UNTIL RecTSE.NEXT=0;
+      IF TotVat <> 0 THEN
+      Transaction."Total Vat Amt":=TotVat;
+      // GITL VL 081117 -
+
+      Transaction.MODIFY;
+
+      {
+      IF (PosFuncProfile."Automatic Stock Update") THEN
+      }
+      IF (PosFuncProfile."Automatic Stock Update") AND (Transaction."Entry Status" <> Transaction."Entry Status"::Training) THEN
+        PosOrderConn.PostItemInventory(Transaction);
+
+      POSPaymentEntry.RESET;
+      POSPaymentEntry.SETCURRENTKEY("Receipt No.");
+      POSPaymentEntry.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSPaymentEntry.DELETEALL;
+
+      POSInfoEntry.RESET;
+      POSInfoEntry.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSInfoEntry.DELETEALL;
+
+      POSMixMatchEntry.RESET;
+      POSMixMatchEntry.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSMixMatchEntry.DELETEALL;
+
+      OfferPosCalc.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      OfferPosCalc.DELETEALL;
+
+      // LOY1.0 Start ....
+      // Added for Coupons
+      POSCouponEntry.RESET;
+      POSCouponEntry.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSCouponEntry.DELETEALL;
+      // LOY1.0 End ....
+      //MOD001 -
+      PosTransLineMM.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      PosTransLineMM.DELETEALL;
+      POSMMEntryMM.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSMMEntryMM.DELETEALL;
+      //MOD001 +
+
+      //Doc CN POS022 16/06/2004 -
+      //Delete the associated Transaction Market Rates
+      TransactionMarketRates.RESET;
+      TransactionMarketRates.SETRANGE("Receipt No.",Rec."Receipt No.");
+      TransactionMarketRates.DELETEALL(TRUE);
+      //Doc CN POS022 16/06/2004 +
+
+      Rec.DELETE;
+
+      //Mod RN235
+      InfoUpdateUtil.RUN(Transaction);
+      //End RN235
+
+      VoucherEntries.RESET;
+      VoucherEntries.SETCURRENTKEY("Receipt Number","Store No.","POS Terminal No.");
+      VoucherEntries.SETRANGE("Receipt Number",POSTransaction."Receipt No.");
+      VoucherEntries.SETRANGE("Store No.",POSTransaction."Store No.");
+      VoucherEntries.SETRANGE("POS Terminal No.",POSTransaction."POS Terminal No.");
+      VoucherEntries.SETRANGE(Unposted,TRUE);
+      IF VoucherEntries.FIND('-') THEN REPEAT
+        VoucherEntries2 := VoucherEntries;
+        VoucherEntries2.Unposted := FALSE;
+        VoucherEntries2."Transaction No." := Transaction."Transaction No.";
+        VoucherEntries2.INSERT(TRUE);
+        VoucherEntries.DELETE;
+      UNTIL VoucherEntries.NEXT = 0;
+
+      LoyaltyPointsTrans.RESET();
+      LoyaltyPointsTrans.SETRANGE("Store No.",POSTransaction."Store No.");
+      LoyaltyPointsTrans.SETRANGE("POS Terminal No.",POSTransaction."POS Terminal No.");
+      LoyaltyPointsTrans.SETRANGE("Transaction No.",0);
+      LoyaltyPointsTrans.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      IF LoyaltyPointsTrans.FIND('-') THEN
+        REPEAT
+          LoyaltyPointsTrans2 := LoyaltyPointsTrans;
+          LoyaltyPointsTrans2."Transaction No." := Transaction."Transaction No.";
+          LoyaltyPointsTrans2.INSERT(TRUE);
+          LoyaltyPointsTrans.DELETE(TRUE);
+        UNTIL LoyaltyPointsTrans.NEXT() = 0;
+
+      COMMIT;
+
+      InUseOnPos.LOCKTABLE(TRUE);
+      InUseOnPos.RESET;
+      InUseOnPos.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      InUseOnPos.DELETEALL;
+
+      HospTransStatus.LOCKTABLE(TRUE);
+      HospTransStatus.RESET;
+      HospTransStatus.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      HospTransStatus.DELETEALL;
+
+      EXIT(Transaction."Transaction No.");
+    END;
+
+    PROCEDURE InsertPaymentTransaction@2();
+    VAR
+      CouponHeader@10012000 : Record 99001621;
+      compressed@1000 : Boolean;
+      LastInfoEntry@1001 : Record 99008982;
+      InfoEntry@1002 : Record 99008982;
+      CashMgt@1100409000 : Codeunit 99001488;
+      MaxAmount@10012001 : Decimal;
+      RemAmount@10012002 : Decimal;
+    BEGIN
+      //InsertPaymentTransaction
+      CompressPaymentTrans(FALSE);
+      IF Transaction."Transaction Type" = Transaction."Transaction Type"::"Remove Tender" THEN
+        Sign := -1;
+
+      tmpCouponHeader.DELETEALL;
+      AffectsNextLastInTrans := FALSE;
+
+      POSTransLineTmp.RESET;
+      POSTransLineTmp.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSTransLineTmp.SETRANGE("Entry Type",POSTransLineTmp."Entry Type"::Payment);
+      IF POSTransLineTmp.FIND('-') THEN REPEAT
+        IF POSTransLineTmp."Entry Status" = POSTransLineTmp."Entry Status"::" " THEN BEGIN
+          IF TenderTypeTable.Code <> POSTransLineTmp.Number THEN BEGIN
+            IF NOT TenderTypeTable.GET(POSTransLineTmp.Number) THEN CLEAR(TenderTypeTable);
+            IF NOT TenderTypes.GET(POSTransaction."Store No.",POSTransLineTmp.Number) THEN CLEAR(TenderTypes);
+          END;
+          IF (TenderTypeTable."Default Function" = TenderTypeTable."Default Function"::Coupons) THEN BEGIN
+            CouponHeader.SETCURRENTKEY(CouponHeader."Coupon Issuer",CouponHeader."Coupon Reference No.");
+            CouponHeader.SETRANGE("Coupon Issuer",POSTransLineTmp."Coupon EAN Org.");
+            CouponHeader.SETRANGE("Coupon Reference No.",POSTransLineTmp."Card/Customer/Coup.Item No");
+            IF NOT CouponHeader.FINDFIRST THEN
+              CouponHeader.INIT;
+          END;
+          //IF POSTransLineTmp."Coupon Discount Amount" <> 0 then this is coupon issue line
+          IF (POSTransLineTmp."Coupon Discount Amount" <> 0) THEN BEGIN
+            CouponHeader.GET(POSTransLineTmp.Number);
+            TenderTypeTable."Default Function" := TenderTypeTable."Default Function"::Coupons;
+          END;
+          IF ((CouponHeader.Handling = CouponHeader.Handling::Tender) AND (POSTransLineTmp."Coupon Discount Amount" = 0)) OR
+            (TenderTypeTable."Default Function" <> TenderTypeTable."Default Function"::Coupons) THEN BEGIN
+
+            PaymentEntry.INIT;
+            PaymentEntry."Transaction No." := Transaction."Transaction No.";
+            PaymentEntry."Line No." := POSTransLineTmp."Line No.";
+            PaymentEntry."Receipt No." := POSTransLineTmp."Receipt No.";
+            PaymentEntry."Statement Code" := StatementCode;
+            PaymentEntry."Card No." := POSTransLineTmp."Card Type";
+            PaymentEntry."Bank Code":=POSTransLineTmp."Bank Code";//VVN
+            PaymentEntry."Tender Type" := POSTransLineTmp.Number;
+            PaymentEntry."Amount Tendered" := Sign * POSTransLineTmp.Amount;
+            PaymentEntry."Amount in Currency" := Sign * POSTransLineTmp."Amount In Currency";
+            IF PaymentEntry."Amount in Currency" = 0 THEN
+              PaymentEntry."Amount in Currency" := PaymentEntry."Amount Tendered";
+            IF PaymentEntry."Amount in Currency" <> 0 THEN
+              PaymentEntry."Exchange Rate" := ROUND(PaymentEntry."Amount Tendered"
+                 / PaymentEntry."Amount in Currency",0.00001);
+            PaymentEntry."Currency Code" := POSTransLineTmp."Currency Code";
+            PaymentEntry.Date := Transaction.Date;
+            PaymentEntry.Time := Transaction.Time;
+            PaymentEntry."Shift No." := Transaction."Shift No.";
+            PaymentEntry."Shift Date" := Transaction."Shift Date";
+            PaymentEntry."Staff ID" := POSTransaction."Staff ID";
+            PaymentEntry."Store No." := POSTransaction."Store No.";
+             PaymentEntry."POS Terminal No." := POSTransaction."POS Terminal No.";
+            PaymentEntry."Managers Key Live" := POSTransaction."Supervisor Rights";
+            PaymentEntry."Message No." := POSTransLineTmp."Card Entry No.";
+            PaymentEntry.Quantity := POSTransLineTmp.Quantity;
+          PaymentEntry."Card or Account" := FORMAT(POSTransLineTmp."Card Or Account");
+          PaymentEntry."Cashback Line" := POSTransLineTmp."Cashback Line";
+          PaymentEntry."Store Group Code" := Store."Store Group Code";
+          PaymentEntry."Store Category Code" := Store."Store Category Code";
+
+            IF (POSTransLineTmp.Amount < 0) AND (NOT POSTransaction."Sale Is Return Sale") THEN
+              PaymentEntry."Change Line" := TRUE;
+
+            IF TenderTypeTable."Default Function" <> TenderTypeTable."Default Function"::Coupons THEN
+              IF PaymentEntry."Card or Account" = '' THEN
+                PaymentEntry."Card or Account" := POSTransLineTmp."Card/Customer/Coup.Item No";
+
+          PaymentEntry."Sales Order No." := Transaction."Sales Order No.";
+          //DOC PG11 11.09.06 -
+            IF gRecStore.GET(PaymentEntry."Store No.") THEN
+              PaymentEntry."Responsibility Center Code" := gRecStore."Responsibility Center";
+
+            IF gRecRespCenter.GET(PaymentEntry."Responsibility Center Code") THEN
+              PaymentEntry."Sub Company Code":=gRecRespCenter."Sub Company Code";
+
+          //DOC PG11 11.09.06 +
+
+            CashMgt.UpdatePaymentEntry(PaymentEntry);
+            // GITL VL 161017 + (GITL-DAMAS-FRS-POS-003)
+            PaymentEntry."Amount Excl. VAT c":=ROUND(POSTransLineTmp.Amount-POSTransLineTmp."VAT Amount",0.01);
+            PaymentEntry."VAT amt c":=ROUND(POSTransLineTmp."VAT Amount",0.01);
+            PaymentEntry."VAT % c":=POSTransLineTmp."VAT %";
+            PaymentEntry."VAT Prod Posting Grp":=POSTransLineTmp."Vat Prod. Posting Group";
+            // GITL VL 161017 - (GITL-DAMAS-FRS-POS-003)
+            PaymentEntry.INSERT(TRUE);
+
+          // LOY1.0 Start ....
+          // Remarked by Loyalty
+          {
+          IF TenderTypeTable."Default Function" = TenderTypeTable."Default Function"::Coupons THEN BEGIN
+            CouponEntry.INIT;
+            CouponEntry."Transaction No." := Transaction."Transaction No.";
+            CouponEntry."Line No." := PaymentEntry."Line No.";
+            CouponEntry."Receipt No." := POSTransaction."Receipt No.";
+            CouponEntry.Barcode := POSTransLineTmp."Barcode No.";
+            CouponEntry.Amount := POSTransLineTmp.Amount;
+            CouponEntry.Quantity := POSTransLineTmp.Quantity;
+            CouponEntry."Item No." := POSTransLineTmp."Card/Customer/Coup.Item No";
+            CouponEntry."Coupon Issuer" := POSTransLineTmp."Coupon EAN Org.";
+            //Mod ?? IH
+            CouponEntry."Sales Order No." := Transaction."Sales Order No.";
+            //End ??
+            CouponEntry.INSERT;
+          END;
+          // LOY1.0 End ....
+          }
+
+            Transaction.Payment := Transaction.Payment + Sign * POSTransLineTmp.Amount;
+            Transaction."No. of Payment Lines" := Transaction."No. of Payment Lines" + 1;
+            IF TenderTypes."Function" = TenderTypes."Function"::Customer THEN
+              Transaction."Amount to Account" := Transaction."Amount to Account" + PaymentEntry."Amount Tendered";
+          END;
+
+          IF TenderTypeTable."Default Function" = TenderTypeTable."Default Function"::Coupons THEN BEGIN
+            CouponEntry.INIT;
+            CouponEntry."Store No." := Transaction."Store No.";
+            CouponEntry."POS Terminal No." := Transaction."POS Terminal No.";
+            CouponEntry."Transaction No." := Transaction."Transaction No.";
+            // CouponEntry."Line No." := PaymentEntry."Line No.";
+            CouponEntry."Line No." := POSTransLineTmp."Line No.";
+            CouponEntry."Receipt No." := POSTransaction."Receipt No.";
+            CouponEntry.Barcode := POSTransLineTmp."Barcode No.";
+            CouponEntry.Amount := POSTransLineTmp.Amount;
+            CouponEntry."Issued Amount" := POSTransLineTmp."Discount Amount";
+            IF POSTransLineTmp."Coupon Discount Amount" <> 0 THEN BEGIN  //Issueing line
+              CouponEntry."Issued Amount" := POSTransLineTmp."Coupon Discount Amount";
+              CouponEntry."Issued Quantity" := POSTransLineTmp.Quantity;
+              MaxAmount := GetCouponBarcodeMaxAmount(CouponHeader);
+            END ELSE
+              CouponEntry.Quantity := POSTransLineTmp.Quantity;
+            CouponEntry."Item No." := POSTransLineTmp."Card/Customer/Coup.Item No";
+            CouponEntry."Coupon Issuer" := POSTransLineTmp."Coupon EAN Org.";
+            CouponEntry."Entry Type" := CouponHeader.Handling;
+            CouponEntry."Coupon Code" := CouponHeader.Code;
+            CouponEntry.Date := Transaction.Date;
+            IF CouponEntry."Issued Amount" > MaxAmount THEN BEGIN
+              RemAmount := CouponEntry."Issued Amount";
+              WHILE RemAmount > 0 DO BEGIN
+                IF RemAmount > MaxAmount THEN
+                  CouponEntry."Issued Amount" := MaxAmount
+                ELSE
+                  CouponEntry."Issued Amount" := RemAmount;
+                RemAmount := RemAmount - CouponEntry."Issued Amount";
+                CouponEntry.INSERT(TRUE);
+                CouponEntry."Line No." += 1;
+              END;
+            END ELSE
+              CouponEntry.INSERT(TRUE);
+            IF CouponHeader.Affects <> CouponHeader.Affects::"Any Item Line" THEN
+              AffectsNextLastInTrans := TRUE;
+            IF CouponHeader.Handling = CouponHeader.Handling::Discount THEN BEGIN
+              IF NOT tmpCouponHeader.GET(CouponHeader.Code) THEN BEGIN
+                tmpCouponHeader := CouponHeader;
+                tmpCouponHeader."Discount Value" := 0;
+                tmpCouponHeader.INSERT;
+              END;
+              tmpCouponHeader."Discount Value" += POSTransLineTmp.Amount;
+              tmpCouponHeader.MODIFY;
+            END;
+          END;
+
+        END ELSE
+          EnterVoidedLine(POSTransLineTmp);
+      UNTIL POSTransLineTmp.NEXT = 0;
+
+      DistributeCouponDiscount;
+
+      POSCardEntry.SETCURRENTKEY("Store No.","POS Terminal No.","Receipt No.");
+      POSCardEntry.SETRANGE("Store No.",POSTransaction."Store No.");
+      POSCardEntry.SETRANGE("POS Terminal No.",POSTransaction."POS Terminal No.");
+      POSCardEntry.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSCardEntry.SETRANGE(Date,Transaction."Original Date");
+      IF POSCardEntry.FIND('-') THEN REPEAT
+        POSCardEntry."Transaction No." := Transaction."Transaction No.";
+        POSCardEntry.MODIFY;
+      UNTIL POSCardEntry.NEXT = 0;
+    END;
+
+    PROCEDURE CompressPaymentTrans@5(CompressAll@1000 : Boolean);
+    VAR
+      compressed@1001 : Boolean;
+      InfoEntry@1002 : Record 99008982;
+      LastInfoEntry@1003 : Record 99008982;
+    BEGIN
+      //CompressPaymentTrans
+
+      CLEAR(POSTransLineTmp);
+
+      POSTransLineTmp.DELETEALL;
+
+      IF POSPaymentEntry.FIND('-') THEN REPEAT
+        IF POSPaymentEntry.Number <> '' THEN BEGIN
+          compressed := FALSE;
+          IF NOT TenderTypes.GET(POSTransaction."Store No.",POSPaymentEntry.Number) THEN CLEAR(TenderTypes);
+          IF TenderTypes."Drawer Opens" AND (POSPaymentEntry.Amount <> 0) THEN
+            Transaction."Open Drawer" := TRUE;
+          IF (POSPaymentEntry.Amount > 0) AND
+             (TenderTypes."Compress Paym. Entries" OR CompressAll) AND
+             (POSPaymentEntry."Entry Status" = 0) THEN BEGIN
+            POSTransLineTmp.SETRANGE("Receipt No.",POSPaymentEntry."Receipt No.");
+            POSTransLineTmp.SETRANGE("Entry Type",POSPaymentEntry."Entry Type");
+            POSTransLineTmp.SETRANGE(Number,POSPaymentEntry.Number);
+            POSTransLineTmp.SETRANGE("Entry Status",POSPaymentEntry."Entry Status");
+            POSTransLineTmp.SETRANGE("Coupon EAN Org.",POSPaymentEntry."Coupon EAN Org.");
+            POSTransLineTmp.SETRANGE("Card/Customer/Coup.Item No",POSPaymentEntry."Card/Customer/Coup.Item No");
+            POSTransLineTmp.SETRANGE("Currency Code",POSPaymentEntry."Currency Code");
+            IF POSTransLineTmp.FIND('-') THEN BEGIN
+              InfoEntry.SETRANGE("Receipt No.",POSPaymentEntry."Receipt No.");
+              InfoEntry.SETRANGE("Transaction Type",InfoEntry."Transaction Type"::"Payment Entry");
+              InfoEntry.SETRANGE("Line No.",POSPaymentEntry."Line No.");
+              IF NOT InfoEntry.FIND('-') THEN
+                CLEAR(InfoEntry);
+              LastInfoEntry.SETRANGE("Receipt No.",POSTransLineTmp."Receipt No.");
+              LastInfoEntry.SETRANGE("Transaction Type",LastInfoEntry."Transaction Type"::"Sales Entry");
+              LastInfoEntry.SETRANGE("Line No.",POSTransLineTmp."Line No.");
+              IF NOT LastInfoEntry.FIND('-') THEN
+                CLEAR(LastInfoEntry);
+              IF (LastInfoEntry."Receipt No." = '') AND (InfoEntry."Receipt No." = '') THEN BEGIN
+                POSTransLineTmp.Amount := POSTransLineTmp.Amount + POSPaymentEntry.Amount;
+                POSTransLineTmp.Quantity := POSTransLineTmp.Quantity + POSPaymentEntry.Quantity;
+                POSTransLineTmp."Amount In Currency" += POSPaymentEntry."Amount In Currency";
+                POSTransLineTmp.MODIFY;
+                compressed := TRUE;
+              END;
+            END;
+          END;
+          IF NOT compressed THEN BEGIN
+            POSTransLineTmp.INIT;
+            POSTransLineTmp := POSPaymentEntry;
+            POSTransLineTmp.INSERT;
+          END;
+        END;
+      UNTIL POSPaymentEntry.NEXT = 0;
+    END;
+
+    PROCEDURE InsertSalesTransaction@3();
+    VAR
+      Item@1000 : Record 27;
+      POSMixMatchEntry@1001 : Record 99008983;
+      MixMatchEntry@1002 : Record 99001496;
+      ItemSection@1100409001 : Record 99001533;
+      ItemGrpSection@1100409000 : Record 99001532;
+      UnitOfMeasureMgt@1100409003 : Codeunit 5402;
+      amt@1003 : Decimal;
+      UOMFactor@1007 : Decimal;
+      Sign2@1000000004 : Decimal;
+      InventorySetup@1000000003 : Record 313;
+      ItemDepartment@1000000002 : Record 50251;
+      TransSalesEntry101@1000000001 : Record 99001473;
+      Barcodes101@1000000000 : Record 99001451;
+      Item2@1000000005 : Record 27;
+      Barcode@1000000006 : Record 99001451;
+      RecBarcodes@1170000000 : Record 99001451;
+      RecRetailSetup@1102156000 : Record 10000700;
+      "------------planet----------"@1000000007 : Integer;
+      recPOSAddressLocal@1000000011 : Record 72009;
+      recPlanetSalesEntry@1000000010 : Record 50289;
+      recSalesTranE@1000000009 : Record 99001473;
+      recTranPaymentEntry@1000000008 : Record 99001474;
+      recPlanetEntry@1000000012 : Record 50289;
+    BEGIN
+      //InsertSalesTransaction
+      CompressSalesTrans;
+
+      POSTransLineTmp.SETCURRENTKEY(POSTransLineTmp."Receipt No.",POSTransLineTmp."Entry Type",POSTransLineTmp.Number);
+      IF POSTransLineTmp.FIND('-') THEN REPEAT
+        IF POSTransLineTmp."Entry Status" = POSTransLineTmp."Entry Status"::" " THEN BEGIN
+          IF (POSTransLineTmp.Quantity <> 0) THEN BEGIN
+            SalesEntry.INIT;
+            SalesEntry."Transaction No." := Transaction."Transaction No.";
+            SalesEntry."Line No." := POSTransLineTmp."Line No.";
+            SalesEntry."Receipt No." := POSTransaction."Receipt No.";
+            SalesEntry."Barcode No." := POSTransLineTmp."Barcode No.";
+            //farook
+            IF (POSTransLineTmp."Barcode No." ='') AND (POSTransLineTmp."Return Line") THEN
+            SalesEntry."Barcode No." := POSTransLineTmp."Unique Id";
+            //farook end
+            SalesEntry."Store No." := POSTransLineTmp."Store No.";
+            // NAVIN
+            SalesEntry."Tax Area Code" := POSTransLineTmp."Tax Area Code";
+            SalesEntry."Tax Group Code" := POSTransLineTmp."Tax Group Code";
+            SalesEntry."Tax Liable" := POSTransLineTmp."Tax Liable";
+            SalesEntry."Tax %" := POSTransLineTmp."Tax %";
+            // NAVIN
+            SalesEntry."Item Number Scanned" := POSTransLineTmp."Item Number Scanned";
+            SalesEntry."Keyboard Item Entry" := NOT(POSTransLineTmp."Item Number Scanned");
+            SalesEntry."POS Terminal No." := POSTransaction."POS Terminal No.";
+            //Doc NS -
+            SalesEntry."Type of Purchase" := POSTransLineTmp."Type of Purchase";
+            SalesEntry."Unique Id" := POSTransLineTmp."Unique Id";
+            SalesEntry."Cash Memo Date" := POSTransLineTmp."Cash Memo Date";
+            SalesEntry."Cash Memo No" := POSTransLineTmp."Cash Memo No";
+            SalesEntry."Cash Memo Time":=POSTransLineTmp."Cash Memo Time";// GITL VL
+            SalesEntry."Total Weight" := POSTransLineTmp."Total Weight";
+            SalesEntry."Accessory Weight" := POSTransLineTmp."Accessory Weight";
+            SalesEntry."Orignal Amt" := POSTransLineTmp."Orignal Amt";
+
+            //Doc NS +
+            SalesEntry."Staff ID" := POSTransaction."Staff ID";
+            SalesEntry."Item Posting Group" := Item."Gen. Prod. Posting Group";
+            SalesEntry."Price Change" := POSTransLineTmp."Price Change";
+            SalesEntry."Weight Manually Entered" := POSTransLineTmp."Weight manually Entered";
+            IF NOT Item.GET(POSTransLineTmp.Number) THEN CLEAR(Item);
+            SalesEntry."Unit of Measure" := POSTransLineTmp."Unit of Measure";
+            SalesEntry.Price := POSTransLineTmp.Price;
+            SalesEntry."Price Group Code" := POSTransLineTmp."Price Group Code";  //LS5.05-03
+            //SalesEntry."VAT Bus. Posting Group" := POSTransLineTmp."Vat Bus. Posting Group"; //LS5.05-03 // GITL VL Commented Merge
+            // GITL VL Merge +
+            IF POSTransLineTmp."Return Line" THEN BEGIN
+              RecRetailSetup.GET;
+              IF POSTransLineTmp."Cash Memo Date" >= RecRetailSetup."VAT Applicable Date" THEN BEGIN
+                SalesEntry."VAT Bus. Posting Group" := POSTransLineTmp."Vat Bus. Posting Group";
+                SalesEntry."VAT Prod. Posting Group":=POSTransLineTmp."Vat Prod. Posting Group";
+              END ELSE BEGIN
+                SalesEntry."VAT Bus. Posting Group" :='';
+                SalesEntry."VAT Prod. Posting Group":='';
+              END;
+            END ELSE BEGIN
+            SalesEntry."VAT Bus. Posting Group" := POSTransLineTmp."Vat Bus. Posting Group"; //LS5.05-03
+            SalesEntry."VAT Prod. Posting Group":=POSTransLineTmp."Vat Prod. Posting Group";
+            END;
+            // GITL VL Merge -
+            SalesEntry."Net Price" := POSTransLineTmp."Net Price";
+            SalesEntry.Quantity := Sign * -POSTransLineTmp.Quantity;
+            IF Item."Base Unit of Measure" <> SalesEntry."Unit of Measure" THEN BEGIN
+              IF SalesEntry."Unit of Measure" <> '' THEN BEGIN
+                SalesEntry."UOM Quantity" := SalesEntry.Quantity;
+                SalesEntry."UOM Price" := SalesEntry.Price;
+              END ELSE
+                SalesEntry."Unit of Measure" := Item."Sales Unit of Measure";
+              UOMFactor := UnitOfMeasureMgt.GetQtyPerUnitOfMeasure(Item,SalesEntry."Unit of Measure");
+              IF UOMFactor <> 0 THEN BEGIN
+                SalesEntry.Quantity := SalesEntry.Quantity * UOMFactor;
+                SalesEntry.Price := ROUND(SalesEntry.Price / UOMFactor,0.00001);
+                SalesEntry."Net Price" := ROUND(SalesEntry."Net Price" / UOMFactor,0.00001);
+              END;
+            END;
+      //MOD 001
+
+            //RN000016
+            //SalesEntry."Gross Amount" := SalesEntry.Quantity * (SalesEntry."VAT Amount" + SalesEntry."Net Amount");
+            //RN000016+
+
+      //ENDMOD 001
+
+            SalesEntry."VAT Code" := POSTransLineTmp."VAT Code";
+            SalesEntry."Discount Amount" := Sign * POSTransLineTmp."Discount Amount";
+            SalesEntry.Date := Transaction.Date;
+            SalesEntry.Time := Transaction.Time;
+            SalesEntry."Shift No." := Transaction."Shift No.";
+            SalesEntry."Shift Date" := Transaction."Shift Date";
+            SalesEntry."Net Amount" := Sign * -POSTransLineTmp."Net Amount";
+            SalesEntry."VAT Amount" := Sign * -POSTransLineTmp."VAT Amount";
+            SalesEntry."Tax Amount" := Sign * -POSTransLineTmp."Tax Amount"; // NAVIN
+            SalesEntry."Cost Amount" := Sign * -POSTransLineTmp."Cost Amount";
+            SalesEntry."Deal Line" := POSTransLineTmp."Deal Line";
+
+            SalesEntry.VALIDATE("Item No.",POSTransLineTmp.Number);
+
+            SalesEntry."Standard Net Price" := FindStandardNetPrice;
+            SalesEntry."Customer No." := POSTransaction."Customer No.";
+            IF Item.Blocked THEN
+              SalesEntry."Transaction Code" := SalesEntry."Transaction Code"::"Item Blocked";
+
+            SalesEntry."Periodic Disc. Type" := POSTransLineTmp."Periodic Disc. Type";
+            SalesEntry."Periodic Disc. Group" := POSTransLineTmp."Periodic Disc. Group";
+            SalesEntry."Offer No." := POSTransLineTmp."Promotion No.";
+
+            amt := POSTransLineTmp.Price * POSTransLineTmp.Quantity;
+
+            SalesEntry."Periodic Discount" :=
+              POSTransLineTmp."Periodic Discount Amount";
+
+            SalesEntry."Customer Discount" :=
+              ROUND((POSTransLineTmp."Customer Disc. %" / 100) * amt);
+
+            amt := amt - SalesEntry."Periodic Discount" - SalesEntry."Customer Discount";
+
+            SalesEntry."Line Discount" :=
+              ROUND((POSTransLineTmp."Line Disc. %" / 100) * amt);
+
+            SalesEntry."Total Discount" := Sign * POSTransLineTmp."Total Disc. Amount";
+            SalesEntry."Total Disc.%" := POSTransLineTmp."Total Disc. %";
+            SalesEntry."Tot. Disc Info Line No." := POSTransLineTmp."Tot. Disc Info Line No.";
+
+            amt := amt - SalesEntry."Line Discount";
+            SalesEntry."Infocode Discount" :=
+              ROUND((POSTransLineTmp."InfoCode Disc. %" / 100) * amt);
+
+            SalesEntry."Coupon Discount" := POSTransLineTmp."Coupon Discount Amount";
+            SalesEntry."Coupon Amt. For Printing" := POSTransLineTmp."Coupon Amt. For Printing";
+
+            IF Sign = -1 THEN BEGIN
+              SalesEntry."Periodic Discount" := - SalesEntry."Periodic Discount";
+              SalesEntry."Customer Discount" := - SalesEntry."Customer Discount";
+              SalesEntry."Line Discount" := - SalesEntry."Line Discount";
+              SalesEntry."Infocode Discount" := - SalesEntry."Infocode Discount";
+              SalesEntry."Coupon Discount" := - SalesEntry."Coupon Discount";
+            END;
+
+            SalesEntry."Total Rounded Amt." := Sign * -POSTransLineTmp.Amount;
+            SalesEntry."Scale Item" := POSTransLineTmp."Scale Item";
+            SalesEntry."Price in Barcode" := POSTransLineTmp."Price in Barcode";
+            SalesEntry."Return No Sale" := (SalesEntry.Quantity > 0);
+
+            SalesEntry."Linked No. not Orig." := POSTransLineTmp."Linked No. not Orig.";
+            SalesEntry."Orig. of a Linked Item List" := POSTransLineTmp."Orig. of a Linked Item List";
+
+            SalesEntry."Variant Code":= POSTransLineTmp."Variant Code";
+
+            IF POSTransLineTmp."Discount Amount" <> 0 THEN
+              SalesEntry."Line was Discounted" := TRUE
+            ELSE
+              SalesEntry."Line was Discounted" := FALSE;
+
+            SalesEntry."Item Disc. Group" := POSTransLineTmp."Item Disc. Group";
+
+            SalesEntry."Discount Amt. For Printing" := POSTransLineTmp."Discount Amt. for Printing";
+            SalesEntry."Sales Staff" := POSTransLineTmp."Sales Staff";
+
+            SalesEntry."Serial No." := POSTransLineTmp."Serial No.";
+
+            //LS5.05-02 -
+            SalesEntry."Sales Type" := POSTransLineTmp."Sales Type";
+            //LS5.05-02 +
+
+            // LOY1.0 Start ......
+            SalesEntry."Gross Amount":=SalesEntry."Net Amount"+SalesEntry."VAT Amount";
+            //SalesEntry."Promotion No.":=SalesEntry."Periodic Disc. Group";
+            // LOY1.0 End ....
+      //MOD RBO
+            SalesEntry."Discount Amt. For Printing" := POSTransLineTmp."Discount Amt. for Printing";
+      //ENDMOD RBO
+            //Mod 01 IH
+            SalesEntry."Store Group Code" := Store."Store Group Code";
+            SalesEntry."Store Category Code" := Store."Store Category Code";
+            //End 01
+
+            // MOD_Item ....
+            IF Item."No." = POSTransLineTmp.Number THEN BEGIN
+               SalesEntry."Item Division Code" := Item."Item Division Code";
+               SalesEntry."Item Sub Group Code" := Item."Item Sub Group Code";
+            END;
+            // MOD_Item End ....
+            //AAT MOD START
+            SalesEntry."Store Purchase" := POSTransLineTmp."Store Purchase";
+            SalesEntry."Dummy Unique ID" := POSTransLineTmp."Dummy Unqiue ID";
+
+            IF (POSTransLineTmp."Store Purchase" > 0) OR
+               (POSTransLineTmp."Return Line")
+            THEN
+              Sign2 := +1
+            ELSE
+              Sign2 := -1;
+
+            SalesEntry."Suspension Requires Fixing" := POSTransLineTmp."Suspension Requires Fixing";
+            SalesEntry."Gross Weight (sold)" := Sign2 * ABS(POSTransLineTmp."Gross Weight (Sold)");
+            SalesEntry."Gross Weight (Tagged)" := Sign2 * ABS(POSTransLineTmp."Gross Weight (Tagged)");
+            SalesEntry."Precious Metal Value" := Sign2 * ABS(POSTransLineTmp."Precious Metal Value");
+
+            SalesEntry."Gross Weight (Variance)" := POSTransLineTmp."Gross Weight (Variance)";
+            SalesEntry.Scrap := POSTransLineTmp.Scrap;
+            SalesEntry."Return Line" := POSTransLineTmp."Return Line";
+
+            SalesEntry."Sales Making Charges" := POSTransLineTmp."Sales Making Charges";
+            SalesEntry."COS Making Charges" := POSTransLineTmp."COS Making Charges";
+            SalesEntry."Purchase Making Charges" := POSTransLineTmp."Purchase Making Charges";
+
+            SalesEntry.Consignment := POSTransLineTmp.Consignment;
+            SalesEntry."Promotion ID":=POSTransLineTmp."Promotion ID";
+            SalesEntry."Vendor No." := POSTransLineTmp."Vendor No.";
+            SalesEntry."Free Gift" := POSTransLineTmp."Free Gift";
+
+            SalesEntry."No. of Pcs." := Sign2 * ABS(POSTransLineTmp.Quantity);
+            SalesEntry.Price := ABS(POSTransLineTmp.Price);
+            SalesEntry."Cost Amount" := Sign2 * ABS(POSTransLineTmp."Cost Amount");
+
+            //phase III
+            IF (SalesEntry.Consignment = SalesEntry.Consignment::Approval) AND
+               (SalesEntry."Cost Amount" = 0)
+            THEN
+              SalesEntry."Cost Amount" := Sign2 * ABS(POSTransLineTmp.Price);
+
+            IF POSTransLineTmp."Gross Weight (Sold)" <> 0 THEN
+              SalesEntry.Quantity := Sign2 * ABS(SalesEntry."Gross Weight (sold)")
+            ELSE
+              SalesEntry.Quantity := Sign2 * ABS(POSTransLineTmp."No. of Pcs.");
+
+
+            //AAT MOD END
+
+            //Mod ??
+            SalesEntry."Sales Order No." := POSTransLineTmp."Sales Order No.";
+            SalesEntry."Sales Order Line" := POSTransLineTmp."Sales Order Line No.";
+            //End ??
+
+            //Mod RN242-
+            SalesEntry."Price Type" := POSTransLineTmp."Price Type";
+            //Mod RN242+
+            //MAWE01-
+            SalesEntry.RFID := POSTransLineTmp.RFID;
+            SalesEntry.TJSID := POSTransLineTmp.TJSID;
+            //MAWE01+
+
+            //DOC PG11 11.09.06 -
+            IF gRecStore.GET(SalesEntry."Store No.") THEN
+              SalesEntry."Responsibility Center Code" := gRecStore."Responsibility Center";
+
+            IF gRecRespCenter.GET(SalesEntry."Responsibility Center Code") THEN
+              SalesEntry."Sub Company Code":=gRecRespCenter."Sub Company Code";
+            //DOC PG11 11.09.06 +
+            //GITL VL 031117 + CR-10
+            IF RecBarcodes.GET(POSTransLineTmp."Barcode No.") THEN
+              SalesEntry."Tag Price":=RecBarcodes."Selling Price";
+            //GITL VL 031117 - CR-10
+            //SalesEntry."VAT Prod. Posting Group":=POSTransLineTmp."Vat Prod. Posting Group";// GITL VL
+            SalesEntry."Market Rate":=POSTransLineTmp."Market Rate"; // GITL VL
+            SalesEntry.INSERT(TRUE);
+
+            IF POSTransLineTmp."Store Purchase" = 0 THEN BEGIN
+              TransSalesEntry101.RESET;
+              TransSalesEntry101.SETCURRENTKEY("Barcode No.");
+              TransSalesEntry101.SETRANGE("Barcode No.",POSTransLineTmp."Barcode No.");
+              TransSalesEntry101.SETFILTER("Store Purchase",'%1|%2',
+                TransSalesEntry101."Store Purchase"::Vendor,TransSalesEntry101."Store Purchase"::Customer);
+              IF TransSalesEntry101.FIND('-') THEN BEGIN
+                TransSalesEntry101."Store Transfer Created" := TRUE;
+                TransSalesEntry101.MODIFY;
+              END;
+            END;
+
+            //AAT DELETION OF UNIQUE IDS -
+            IF (POSTransLineTmp."Store Purchase" = 0) AND
+               (NOT POSTransLineTmp."Return Line")
+            THEN BEGIN
+              Item2.GET(POSTransLineTmp.Number);
+              IF NOT Item2."Unique ID Not Required" THEN BEGIN
+                Barcode.GET(POSTransLineTmp."Barcode No.");
+                ItemDepartment.GET(Item2."Item Department Code");
+                InventorySetup.GET;
+                IF (NOT POSTransLineTmp.Scrap) AND
+                   (Item2."Item Division Code" IN [InventorySetup."Gold Division",InventorySetup."Platinum Division"]) AND
+                   (NOT ItemDepartment."Spanish Jewellery") THEN
+                BEGIN
+                  //in this case the Barcode needs to be archived, even though there is some remaining weight on the barcode.
+                  //this will cater for weight variances on the scale.
+                  Barcode."Remaining Gross Weight (Gr)" := POSTransLineTmp."Gross Weight (Variance)";
+                  Barcode."Remaining No. of Pcs." := 0; //This will ensure that the Barcode is archived
+                  Barcode."Remaining Pure Weight (Gr)" :=
+                    DamasMgt.GetPureWeight(Item2."Item Department Code",POSTransLineTmp."Gross Weight (Variance)");
+                  Barcode.MODIFY(TRUE);
+                END ELSE BEGIN
+                  //Doc CN 06/05/04 -
+                  //Process the Set Barcode
+                  DamasMgt.POSProcessSetIDS(Barcode);
+                  //Doc CN 06/05/04 +
+                  IF Barcode."Remaining No. of Pcs." <> 0 THEN
+                  BEGIN
+                    Barcode."Selling Price" := Barcode."Selling Price" -
+                      ((Barcode."Selling Price" / Barcode."Remaining No. of Pcs.") * POSTransLineTmp.Quantity);
+                    Barcode."Direct Unit Cost" := Barcode."Direct Unit Cost" -
+                      ((Barcode."Direct Unit Cost" / Barcode."Remaining No. of Pcs.") * POSTransLineTmp.Quantity);
+                  END;
+
+                  Barcode.VALIDATE("Gross Weight (Gr)",Barcode."Gross Weight (Gr)"-
+                                   POSTransLineTmp."Gross Weight (Sold)");
+                  Barcode.VALIDATE("Pure Weight (Gr)",
+                                   DamasMgt.GetPureWeight(Item2."Item Department Code",Barcode."Gross Weight (Gr)"));
+                  Barcode.VALIDATE("No. of Pcs.",Barcode."No. of Pcs." - POSTransLineTmp.Quantity);
+                  Barcode.VALIDATE("Remaining No. of Pcs.",Barcode."Remaining No. of Pcs." - POSTransLineTmp.Quantity);
+                  Barcode.VALIDATE("Remaining Gross Weight (Gr)",Barcode."Remaining Gross Weight (Gr)"-
+                                   POSTransLineTmp."Gross Weight (Sold)");
+                  Barcode.VALIDATE("Remaining Pure Weight (Gr)",
+                                    DamasMgt.GetPureWeight(Item2."Item Department Code",Barcode."Remaining Gross Weight (Gr)"));
+
+                  Barcode.Scrap := POSTransLineTmp.Scrap;
+
+                  Barcode.MODIFY(TRUE);
+                END;
+
+                IF Barcode."Remaining No. of Pcs." <= 0 THEN
+                BEGIN
+                  CancelledBarcode.INIT;
+                  CancelledBarcode.TRANSFERFIELDS(Barcode);
+                  IF NOT CancelledBarcode.INSERT(TRUE) THEN
+                  BEGIN
+                    //Modify the archived barcode to allow re-use of barcodes that are not unique
+                    IF CancelledBarcode."Remaining No. of Pcs." <> 0 THEN
+                      CancelledBarcode."Selling Price" -=
+                      ((CancelledBarcode."Selling Price"/CancelledBarcode."Remaining No. of Pcs.") * POSTransLineTmp.Quantity);
+
+                    CancelledBarcode.VALIDATE("Remaining Gross Weight (Gr)",CancelledBarcode."Remaining Gross Weight (Gr)"-
+                                     POSTransLineTmp."Gross Weight (Sold)");
+                    CancelledBarcode.VALIDATE("Remaining Pure Weight (Gr)",
+                                     DamasMgt.GetPureWeight(Item2."Item Department Code",CancelledBarcode."Remaining Gross Weight (Gr)")
+      );
+                    CancelledBarcode.VALIDATE("Remaining No. of Pcs.",Barcode."Remaining No. of Pcs." - POSTransLineTmp."No. of Pcs.");
+                    CancelledBarcode."Direct Unit Cost" -= (POSTransLineTmp."Cost Price"*POSTransLineTmp.Quantity);
+                    CancelledBarcode."Selling Price" -= (POSTransLineTmp.Price*POSTransLineTmp.Quantity);
+                    CancelledBarcode.MODIFY(TRUE);
+                  END;
+                  IF NOT Barcode."Do Not Delete" THEN BEGIN
+                    Barcode.Status := Barcode.Status::" ";
+                    Barcode.DELETE(TRUE);
+                  END;
+                END;
+              END;
+            END ELSE BEGIN
+              //creating unique id for return lines & Store Purchase
+
+              IF (POSTransLineTmp."Return Line") OR
+                 (POSTransLineTmp."Store Purchase" > 0)
+              THEN BEGIN
+                Barcode.INIT;
+                Barcode.VALIDATE("Item No.",POSTransLineTmp.Number);
+                IF POSTransLineTmp."Return Line" THEN BEGIN
+                  //blocked by farook
+                  {
+                  IF POSInfoEntry.GET(
+                    POSTransLineTmp."Receipt No.",POSInfoEntry."Transaction Type"::"Sales Entry",POSTransLineTmp."Line No.",
+                    'UNIQUEID') THEN BEGIN
+                    Barcode.VALIDATE("Barcode No.",POSInfoEntry.Information);
+                   // end of block
+                  END;
+                 }
+                   // addition by farook
+                    Barcode.VALIDATE("Barcode No.",POSTransLineTmp."Unique Id");
+                   // end of addition
+
+                END ELSE BEGIN
+                  Barcode.VALIDATE("Barcode No.",POSTransLineTmp."Barcode No.");
+                END;
+
+                //check if the barcode is already in the system to prevent a new one from being created.
+                //This is important in the case of Unique ID's that are re-useable (Spanish and Loose Stones)
+                IF NOT Barcode.GET(Barcode."Barcode No.") THEN BEGIN
+                  Barcode.VALIDATE("Show for Item",TRUE);
+                  Barcode.VALIDATE("Gross Weight (Gr)",ABS(POSTransLineTmp.Quantity));
+
+                  IF POSTransLineTmp."Return Line" THEN
+                    Barcode.VALIDATE("Making Charges",ABS(POSTransLineTmp."Sales Making Charges"))
+                  ELSE
+                    Barcode.VALIDATE("Making Charges",ABS(POSTransLineTmp."Purchase Making Charges"));
+
+                  Barcode."Direct Unit Cost" := ABS(POSTransLineTmp."Net Amount");
+
+                  Store.GET(POSTransLineTmp."Store No.");
+                  Barcode.VALIDATE("Location Code",Store."Location Code");
+                  Barcode.VALIDATE("Store No.",POSTransLineTmp."Store No.");
+
+                  Item2.GET(Barcode."Item No.");
+                  Barcode.Description := POSTransLineTmp.Description;
+
+                  Barcode.VALIDATE("No. of Pcs.",ABS(POSTransLineTmp.Quantity));
+                  Barcode.VALIDATE("Remaining No. of Pcs.",ABS(POSTransLineTmp.Quantity));
+                  Barcode.VALIDATE("Remaining Gross Weight (Gr)",ABS(POSTransLineTmp.Quantity));
+                  Barcode.VALIDATE("Pure Weight (Gr)",
+                    DamasMgt.GetPureWeight(Item2."Item Department Code",ABS(POSTransLineTmp.Quantity)));
+                  Barcode.VALIDATE("Remaining Pure Weight (Gr)",Barcode."Pure Weight (Gr)");
+                  Barcode.VALIDATE("Dummy Unique ID",TRUE);
+
+                  //VVN  - 20082009
+                  IF Item2."Item Division Code"='GOLD' THEN
+                  Barcode.Fixed:=TRUE;
+                  //VVN + 20082009
+
+                  Barcode.VALIDATE("Selling Price",ABS(POSTransLineTmp."Tag Price"));
+                  Barcode.VALIDATE("Direct Unit Cost",POSTransLineTmp."Net Price");
+
+                  IF POSTransLineTmp."Return Line" THEN
+                    Barcode."Store Source Type" := Barcode."Store Source Type"::"Sales Returns";
+                  IF POSTransLineTmp."Store Purchase" > 0 THEN
+                    Barcode."Store Source Type" := Barcode."Store Source Type"::"Store Purchase";
+
+                  IF (Barcode."No. of Pcs." <> 0) AND
+                     (Barcode."Making Charges" <> 0) THEN
+                    Barcode."Making Charge Cost" := Barcode."Making Charges" / Barcode."No. of Pcs.";
+
+                  Barcode.Status := Barcode.Status::"In-Store";
+                  IF NOT Barcode.INSERT(TRUE) THEN
+                    Barcode.MODIFY(TRUE);
+                END ELSE BEGIN
+                  //This is in the case of Spanish, loose Stone returns where the barcode is still active, and needs
+                  //to be modified to reflect the correct Price and Cost
+                  Item2.GET(Barcode."Item No.");
+                  IF (Barcode."Selling Price" <> 0) AND
+                     (Barcode."Remaining No. of Pcs." <> 0)
+                  THEN
+                    Barcode."Selling Price" := Barcode."Selling Price" +
+                      ((Barcode."Selling Price" / Barcode."Remaining No. of Pcs.") * POSTransLineTmp.Quantity)
+                  ELSE
+                    Barcode."Selling Price" := ABS(POSTransLineTmp."Tag Price");
+
+                  IF (Barcode."Direct Unit Cost" <> 0) AND  (Barcode."Remaining No. of Pcs." <> 0) THEN
+                    Barcode."Direct Unit Cost" := Barcode."Direct Unit Cost" +
+                      ((Barcode."Direct Unit Cost" / Barcode."Remaining No. of Pcs.") * ABS(POSTransLineTmp.Quantity))
+                  ELSE
+                    Barcode."Direct Unit Cost" := ABS(POSTransLineTmp."Net Amount");
+
+                  Barcode.VALIDATE("Remaining Gross Weight (Gr)",Barcode."Remaining Gross Weight (Gr)"+
+                                   ABS(POSTransLineTmp."Gross Weight (Sold)"));
+                  Barcode.VALIDATE("Remaining Pure Weight (Gr)",
+                                    DamasMgt.GetPureWeight(Item2."Item Department Code",Barcode."Remaining Gross Weight (Gr)"));
+
+                  Barcode.VALIDATE("Remaining No. of Pcs.",Barcode."Remaining No. of Pcs." + ABS(POSTransLineTmp.Quantity));
+
+                  Barcode.VALIDATE("Gross Weight (Gr)",Barcode."Gross Weight (Gr)"+
+                                   ABS(POSTransLineTmp."Gross Weight (Sold)"));
+                  Barcode.VALIDATE("Pure Weight (Gr)",
+                                    DamasMgt.GetPureWeight(Item2."Item Department Code",Barcode."Gross Weight (Gr)"));
+                  Barcode.VALIDATE("No. of Pcs.",Barcode."No. of Pcs." + ABS(POSTransLineTmp.Quantity));
+
+                  Barcode.VALIDATE("Location Code",Store."Location Code");
+                  Barcode.VALIDATE("Store No.",POSTransLineTmp."Store No.");
+
+                  Item2.GET(Barcode."Item No.");
+                  Barcode.Description := POSTransLineTmp.Description;
+
+                  Barcode.VALIDATE("Dummy Unique ID",TRUE);
+
+                  IF POSTransLineTmp."Return Line" THEN
+                    Barcode."Store Source Type" := Barcode."Store Source Type"::"Sales Returns";
+                  IF POSTransLineTmp."Store Purchase" > 0 THEN
+                    Barcode."Store Source Type" := Barcode."Store Source Type"::"Store Purchase";
+
+                  Barcode.Status := Barcode.Status::"In-Store";
+
+                  IF POSTransLineTmp."Return Line" THEN
+                    Barcode.VALIDATE("Making Charges",ABS(POSTransLineTmp."Sales Making Charges"))
+                  ELSE
+                    Barcode.VALIDATE("Making Charges",ABS(POSTransLineTmp."Purchase Making Charges"));
+
+                  IF (Barcode."No. of Pcs." <> 0) AND
+                     (Barcode."Making Charges" <> 0) THEN
+                    Barcode."Making Charge Cost" := Barcode."Making Charges" / Barcode."No. of Pcs.";
+
+                  Barcode.MODIFY(TRUE);
+                END;
+              END;
+            END;
+            //AAT DELETION OF UNIQUE IDS +
+            //RN000016
+            {
+
+            // Mix & match entry
+            POSMixMatchEntry.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+            POSMixMatchEntry.SETRANGE("Line No.",POSTransLineTmp."Line No.");
+            IF POSMixMatchEntry.FIND('-') THEN REPEAT
+              MixMatchEntry.INIT;
+              MixMatchEntry."Transaction No." := Transaction."Transaction No.";
+              MixMatchEntry."Line No." := SalesEntry."Line No.";
+              MixMatchEntry.Counter := POSMixMatchEntry.Counter;
+              MixMatchEntry."Mix & Match Group" := POSMixMatchEntry."Mix && Match Group";
+              MixMatchEntry."Store No." := POSMixMatchEntry."Store No.";
+              MixMatchEntry."POS Terminal No." := Transaction."POS Terminal No.";
+              MixMatchEntry.Date := POSMixMatchEntry.Date;
+              MixMatchEntry.Time := POSMixMatchEntry.Time;
+              MixMatchEntry."Discount Amount" := Sign * POSMixMatchEntry."Discount Amount";
+              MixMatchEntry.Quantity := POSMixMatchEntry.Quantity;
+              MixMatchEntry.INSERT(TRUE);
+            UNTIL POSMixMatchEntry.NEXT = 0;
+            }
+
+            POSMMEntryTmp.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+            POSMMEntryTmp.SETRANGE("Line No.",POSTransLineTmp."Line No.");
+            IF POSMMEntryTmp.FIND('-') THEN REPEAT
+              MixMatchEntry.INIT;
+              MixMatchEntry."Transaction No." := Transaction."Transaction No.";
+              MixMatchEntry."Line No." := SalesEntry."Line No.";
+              MixMatchEntry.Counter := POSMMEntryTmp.Counter;
+              MixMatchEntry."Mix & Match Group" := POSMMEntryTmp."Mix && Match Group";
+              MixMatchEntry."Store No." := POSMMEntryTmp."Store No.";
+              MixMatchEntry.Date := POSMMEntryTmp.Date;
+              MixMatchEntry.Time := POSMMEntryTmp.Time;
+              MixMatchEntry."Discount Amount" := ROUND(Sign * POSMMEntryTmp."Discount Amount");
+              MixMatchEntry.Quantity := POSMMEntryTmp.Quantity;
+              MixMatchEntry.INSERT;
+            UNTIL POSMMEntryTmp.NEXT = 0;
+
+            //RN000016+
+
+            // Retail Variant Entry
+            IF SalesEntry."Variant Code" <> '' THEN
+              IF ItemVariant.GET(SalesEntry."Item No.",SalesEntry."Variant Code") THEN BEGIN
+                RetailVariantEntry.INIT;
+                RetailVariantEntry."Transaction No." := SalesEntry."Transaction No.";
+                RetailVariantEntry."Line No." := SalesEntry."Line No.";
+                RetailVariantEntry."Size Group" := Item."Size Group";
+                RetailVariantEntry."Size Code" := ItemVariant."Size Code";
+                RetailVariantEntry."Color Group" := Item."Color Group";
+                RetailVariantEntry."Color Code" := ItemVariant."Color Code";
+                RetailVariantEntry."Style Group" := Item."Style Group";
+                RetailVariantEntry."Style Code" := ItemVariant."Style Code";
+                RetailVariantEntry."Item Group" := SalesEntry."Item Group";
+                RetailVariantEntry."Item No." := SalesEntry."Item No.";
+                RetailVariantEntry.Date := SalesEntry.Date;
+                RetailVariantEntry.Time := SalesEntry.Time;
+                RetailVariantEntry."Store No." := SalesEntry."Store No.";
+                RetailVariantEntry.Quantity := SalesEntry.Quantity;
+                RetailVariantEntry."Net Amount" := SalesEntry."Net Amount";
+                RetailVariantEntry."Cost Amount" := SalesEntry."Cost Amount";
+                RetailVariantEntry.INSERT;
+              END;
+
+            IF POSTransLineTmp."Scale Item" OR POSTransLineTmp."Quantity in Barcode" OR POSTransLineTmp."Price in Barcode" THEN
+              Transaction."No. of Items" := Transaction."No. of Items" + Sign
+            ELSE
+              Transaction."No. of Items" := Transaction."No. of Items" - SalesEntry.Quantity;
+
+            Transaction."Net Amount" += SalesEntry."Net Amount";
+            Transaction."Cost Amount" += SalesEntry."Cost Amount";
+            Transaction."Discount Amount" += SalesEntry."Discount Amount";
+            //Transaction."Gross Amount" += (SalesEntry."VAT Amount" + SalesEntry."Net Amount");
+            Transaction."Gross Amount" += (SalesEntry."VAT Amount" + SalesEntry."Net Amount"+ SalesEntry."Tax Amount"); // NAVIN;
+            Transaction."Total Discount" += SalesEntry."Total Discount";
+            Transaction."Customer Discount" := Transaction."Customer Discount" + SalesEntry."Customer Discount";
+          END;
+          IF POSTransLineTmp."Deal Line" THEN
+            InsertDealInfo(POSTransLineTmp,Transaction);
+        END ELSE
+          EnterVoidedLine(POSTransLineTmp);
+      UNTIL POSTransLineTmp.NEXT = 0;
+
+      // Delete from buffer
+      POSTransLineTmp.RESET;
+      POSTransLineTmp.DELETEALL;
+    END;
+
+    PROCEDURE InsertInfoTransaction@17();
+    VAR
+      SalesEntryLocal@1000 : Record 99001473;
+      pSign@1001 : Integer;
+    BEGIN
+      //InsertInfoTransaction
+      IF POSInfoEntry.FIND('-') THEN REPEAT
+        IF POSInfoEntry."Transaction Type" <> POSInfoEntry."Transaction Type"::"Payment Entry" THEN
+          pSign := -Sign
+        ELSE
+          pSign := Sign;
+        InfoEntry.INIT;
+        InfoEntry."Transaction No." := Transaction."Transaction No.";
+        InfoEntry."Transaction Type" := POSInfoEntry."Transaction Type";
+        InfoEntry."Line No." := POSInfoEntry."Line No.";
+        InfoEntry.Infocode := POSInfoEntry.Infocode;
+        InfoEntry."Store No." := POSInfoEntry."Store No.";
+        InfoEntry.Information := POSInfoEntry.Information;
+        InfoEntry."Info. Amt." := pSign * POSInfoEntry."Info. Amt.";
+        InfoEntry.Date := POSInfoEntry.Date;
+        InfoEntry.Time := POSInfoEntry.Time;
+        //Mod 01
+        InfoEntry."Store Group Code" := Store."Store Group Code";
+        InfoEntry."Store Category Code" := Store."Store Category Code";
+        //end 01
+
+        InfoEntry."POS Terminal No." := POSInfoEntry."POS Terminal No.";
+        InfoEntry."Staff ID" := POSInfoEntry."Staff ID";
+        InfoEntry."No." := POSInfoEntry."No.";
+        InfoEntry."Variant Code" := POSInfoEntry."Variant Code";
+        InfoEntry."Type of Input" := POSInfoEntry."Type of Input";
+        InfoEntry.Subcode := POSInfoEntry.Subcode;
+        InfoEntry."Statement Code" := StatementCode;
+        InfoEntry."Source Code" := POSInfoEntry."Source Code";
+        IF InfoEntry."Transaction Type" = InfoEntry."Transaction Type"::"Sales Entry" THEN BEGIN
+          IF SalesEntryLocal.GET(InfoEntry."Store No.",InfoEntry."POS Terminal No.",
+            InfoEntry."Transaction No.",InfoEntry."Line No.") THEN
+            InfoEntry.Amount := SalesEntryLocal."Net Amount" + SalesEntryLocal."VAT Amount"
+          ELSE
+            InfoEntry.Amount := pSign * POSInfoEntry.Amount;
+        END ELSE
+          InfoEntry.Amount := pSign * POSInfoEntry.Amount;
+
+        //Mod ?? IH
+        InfoEntry."Sales Order No." := Transaction."Sales Order No.";
+        //End
+
+        //DOC PG11 11.09.06 -
+          IF gRecStore.GET(InfoEntry."Store No.") THEN
+            InfoEntry."Responsibility Center Code" := gRecStore."Responsibility Center";
+
+          IF gRecRespCenter.GET(InfoEntry."Responsibility Center Code") THEN
+            InfoEntry."Sub Company Code":=gRecRespCenter."Sub Company Code";
+        //DOC PG11 11.09.06 +
+
+        InfoEntry.INSERT(TRUE);
+      UNTIL POSInfoEntry.NEXT = 0;
+    END;
+
+    PROCEDURE InsertTenderDeclTransaction@6();
+    VAR
+      InfoTrans@1000 : Record 99001478;
+      pSign@1001 : Integer;
+    BEGIN
+      //InsertTenderDeclTransaction
+      CompressPaymentTrans(TRUE);
+
+      POSTransLineTmp.RESET;
+      POSTransLineTmp.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSTransLineTmp.SETRANGE("Entry Type",POSTransLineTmp."Entry Type"::Payment);
+      IF POSTransLineTmp.FIND('-') THEN REPEAT
+        IF POSTransLineTmp."Entry Status" = POSTransLineTmp."Entry Status"::" " THEN BEGIN
+          TenderDeclEntry."Transaction No." := Transaction."Transaction No.";
+          TenderDeclEntry."Line No." := POSTransLineTmp."Line No.";
+          TenderDeclEntry."Slip No." := POSTransLineTmp."Receipt No.";
+          TenderDeclEntry."Statement Code" := StatementCode;
+          TenderDeclEntry."POS Curr. Code" := POSTransLineTmp."Currency Code";
+          TenderDeclEntry."Card No." := POSTransLineTmp."Card Type";
+          TenderDeclEntry."Tender Type" := POSTransLineTmp.Number;
+          TenderDeclEntry.Quantity := POSTransLineTmp.Quantity;
+          TenderDeclEntry."Amount Tendered" := POSTransLineTmp.Amount;
+          TenderDeclEntry."Currency Code" := POSTransLineTmp."Currency Code";
+          TenderDeclEntry."Amount in Currency" := POSTransLineTmp."Amount In Currency";
+          TenderDeclEntry.Date := Transaction.Date;
+          TenderDeclEntry.Time := Transaction.Time;
+          TenderDeclEntry."Shift No." := Transaction."Shift No.";
+          TenderDeclEntry."Shift Date" := Transaction."Shift Date";
+          TenderDeclEntry."Staff ID" := Transaction."Staff ID";
+          TenderDeclEntry."Store No." := POSTransLineTmp."Store No.";
+          TenderDeclEntry."POS Terminal No." := POSTransLineTmp."POS Terminal No.";
+          TenderDeclEntry."Statement No." := Transaction."Statement No.";
+          TenderDeclEntry.INSERT(TRUE);
+        END ELSE
+          EnterVoidedLine(POSTransLineTmp);
+      UNTIL POSTransLineTmp.NEXT = 0;
+    END;
+
+    PROCEDURE InsertIncomeExpenseTransaction@7();
+    VAR
+      IncomExpenseEntry@1000 : Record 99001475;
+      pSign@1001 : Integer;
+      IncExpAccount@1002 : Record 99001476;
+      NoSeriesManagement@1102156000 : Codeunit 396;
+    BEGIN
+      //InsertIncomeExpenseTransaction
+      IncomExpenseEntry."Transaction No." := Transaction."Transaction No.";
+      IncomExpenseEntry."Staff ID" := Transaction."Staff ID";
+      IncomExpenseEntry.Date := Transaction.Date;
+      IncomExpenseEntry.Time := Transaction.Time;
+      IncomExpenseEntry."Shift No." := Transaction."Shift No.";
+      IncomExpenseEntry."Shift Date" := Transaction."Shift Date";
+      IncomExpenseEntry."Statement Code" := Transaction."Statement Code";
+      IncomExpenseEntry."Statement No." := Transaction."Statement No.";
+      IncomExpenseEntry."Receipt  No." := POSTransaction."Receipt No.";
+      IncomExpenseEntry."Store No." := POSTransaction."Store No.";
+      IncomExpenseEntry."POS Terminal No." := POSTransaction."POS Terminal No.";
+      //Mod 01 IH
+      IncomExpenseEntry."Store Group Code" := Store."Store Group Code";
+      IncomExpenseEntry."Store Category Code" := Store."Store Category Code";
+      //End 01
+
+      //DOC PG11 11.09.06 -
+      IF gRecStore.GET(IncomExpenseEntry."Store No.") THEN
+        IncomExpenseEntry."Responsibility Center Code" := gRecStore."Responsibility Center";
+
+      IF gRecRespCenter.GET(IncomExpenseEntry."Responsibility Center Code") THEN
+        IncomExpenseEntry."Sub Company Code":=gRecRespCenter."Sub Company Code";
+      //DOC PG11 11.09.06 +
+
+      IF POSIncomeExpenseEntry.FIND('-') THEN REPEAT
+        IF POSIncomeExpenseEntry."Entry Status" = POSTransLineTmp."Entry Status"::" " THEN BEGIN
+          IncExpAccount.GET(POSIncomeExpenseEntry."Store No.",POSIncomeExpenseEntry.Number);
+          IncomExpenseEntry."Line No." := POSIncomeExpenseEntry."Line No.";
+          IncomExpenseEntry."No." := POSIncomeExpenseEntry.Number;
+          IncomExpenseEntry.Amount := -Sign * POSIncomeExpenseEntry.Amount;
+
+          IncomExpenseEntry."Amount in Currency" := -Sign * POSIncomeExpenseEntry."Amount In Currency";
+          IF IncomExpenseEntry."Amount in Currency" = 0 THEN
+            IncomExpenseEntry."Amount in Currency" := IncomExpenseEntry.Amount;
+          IF IncomExpenseEntry."Amount in Currency" <> 0 THEN
+            IncomExpenseEntry."Exchange Rate" := ROUND(IncomExpenseEntry.Amount / IncomExpenseEntry."Amount in Currency",0.00001);
+          IncomExpenseEntry."Currency Code" := POSIncomeExpenseEntry."Currency Code";
+
+          IncomExpenseEntry."Account Type" := IncExpAccount."Account Type";
+          //Mod ?? IH
+          IncomExpenseEntry."Sales Order No." := POSTransaction."Sales Order No.";
+          //End ??
+          //seco
+          IncomExpenseEntry.Description := POSIncomeExpenseEntry.Description;
+          // GITL VL 161017 + (GITL-DAMAS-FRS-POS-003)
+          IncomExpenseEntry."Amount Excl. VAT c":=ROUND(IncomExpenseEntry.Amount+POSIncomeExpenseEntry."VAT Amount",0.01);
+          IncomExpenseEntry."VAT amt c":=-1* ROUND(POSIncomeExpenseEntry."VAT Amount",0.01);
+          IncomExpenseEntry."VAT % c":=POSIncomeExpenseEntry."VAT %";
+          IncomExpenseEntry."Vat Prod Posting Grp":=POSIncomeExpenseEntry."Vat Prod. Posting Group";
+          IF POSIncomeExpenseEntry.Number='26' THEN
+          IncomExpenseEntry."Credit Note No.":=NoSeriesManagement.GetNextNo(FORMAT('CN'+'-'+POSTransaction."Store No."),TODAY,TRUE);
+          // GITL VL 161017 - (GITL-DAMAS-FRS-POS-003)
+          IncomExpenseEntry."Vat Bus. Posting Grp":=POSIncomeExpenseEntry."Vat Bus. Posting Group";// GITL VL
+          // GITL VL 091018 +
+          IF POSIncomeExpenseEntry.Number='6' THEN
+            IncomExpenseEntry."Sales Order No.":=POSIncomeExpenseEntry."Sales Order No.";
+          // GITL VL 091018 -
+          IncomExpenseEntry.INSERT(TRUE);
+          Transaction."Income/Exp. Amount" := Transaction."Income/Exp. Amount" + IncomExpenseEntry.Amount;
+        END ELSE
+          EnterVoidedLine(POSIncomeExpenseEntry);
+      UNTIL POSIncomeExpenseEntry.NEXT = 0;
+
+      IF POSTransaction."Service Charge" <> 0 THEN BEGIN
+        IncomExpenseEntry."No." := Store."Serv. Charge. Inc/Exp Acc";
+        IncExpAccount.GET(POSTransaction."Store No.",IncomExpenseEntry."No.");
+        IncomExpenseEntry."Line No." := 2500;
+        IncomExpenseEntry.Amount := -Sign * POSTransaction."Service Charge";
+
+        IncomExpenseEntry."Amount in Currency" := -Sign * POSIncomeExpenseEntry."Amount In Currency";
+        IF IncomExpenseEntry."Amount in Currency" = 0 THEN
+          IncomExpenseEntry."Amount in Currency" := IncomExpenseEntry.Amount;
+        IF IncomExpenseEntry."Amount in Currency" <> 0 THEN
+          IncomExpenseEntry."Exchange Rate" := ROUND(IncomExpenseEntry.Amount / IncomExpenseEntry."Amount in Currency",0.00001);
+        IncomExpenseEntry."Currency Code" := POSIncomeExpenseEntry."Currency Code";
+
+        IncExpAccount.Description := Text000 + FORMAT(Store."Service Charge %") + '%';
+        //Mod ?? IH
+        IncomExpenseEntry."Sales Order No." := POSTransaction."Sales Order No.";
+        //End ??
+
+        IncomExpenseEntry.INSERT(TRUE);
+        Transaction."Income/Exp. Amount" := Transaction."Income/Exp. Amount" + IncomExpenseEntry.Amount;
+      END;
+    END;
+
+    PROCEDURE InsertInventoryTransaction@13();
+    VAR
+      Barcode@1200070000 : Record 99001451;
+      UOMFactor@1000 : Decimal;
+    BEGIN
+      //InsertInventoryTransaction
+      CompressSalesTrans;
+
+      POSTransLineTmp.SETCURRENTKEY(POSTransLineTmp."Receipt No.",POSTransLineTmp."Entry Type",POSTransLineTmp.Number);
+      IF POSTransLineTmp.FIND('-') THEN REPEAT
+        IF POSTransLineTmp."Entry Status" = POSTransLineTmp."Entry Status"::" " THEN BEGIN
+          IF (POSTransLineTmp.Quantity <> 0) THEN BEGIN
+            InventoryEntry.INIT;
+            InventoryEntry."Transaction No." := Transaction."Transaction No.";
+            InventoryEntry."Line No." := POSTransLineTmp."Line No.";
+            InventoryEntry."Receipt No." := POSTransaction."Receipt No.";
+            InventoryEntry."Barcode No." := POSTransLineTmp."Barcode No.";
+            InventoryEntry."Weight Manually Entered" := POSTransLineTmp."Weight manually Entered";
+            IF NOT Item.GET(POSTransLineTmp.Number) THEN CLEAR(Item);
+            InventoryEntry."Unit of Measure" := POSTransLineTmp."Unit of Measure";
+            InventoryEntry.Quantity := POSTransLineTmp.Quantity;
+            IF Item."Base Unit of Measure" <> InventoryEntry."Unit of Measure" THEN BEGIN
+              IF InventoryEntry."Unit of Measure" <> '' THEN BEGIN
+                InventoryEntry."UOM Quantity" := InventoryEntry.Quantity;
+              END ELSE
+                InventoryEntry."Unit of Measure" := Item."Sales Unit of Measure";
+              UOMFactor := UnitOfMeasureMgt.GetQtyPerUnitOfMeasure(Item,InventoryEntry."Unit of Measure");
+              IF UOMFactor <> 0 THEN BEGIN
+                InventoryEntry.Quantity := InventoryEntry.Quantity * UOMFactor;
+              END;
+            END;
+            InventoryEntry.Date := Transaction.Date;
+            InventoryEntry.Time := Transaction.Time;
+
+            InventoryEntry.VALIDATE("Item No.",POSTransLineTmp.Number);
+
+            InventoryEntry."Store No." := POSTransLineTmp."Store No.";
+            InventoryEntry."Item Number Scanned" := POSTransLineTmp."Item Number Scanned";
+            InventoryEntry."Keyboard Item Entry" := NOT(POSTransLineTmp."Item Number Scanned");
+            InventoryEntry."POS Terminal No." := POSTransaction."POS Terminal No.";
+            InventoryEntry."Staff ID" := POSTransaction."Staff ID";
+
+            InventoryEntry."Scale Item" := POSTransLineTmp."Scale Item";
+            InventoryEntry."Price in Barcode" := POSTransLineTmp."Price in Barcode";
+
+            InventoryEntry."Variant Code" := POSTransLineTmp."Variant Code";
+            IF InventoryEntry."Variant Code" = '' THEN
+              IF Barcode.GET(InventoryEntry."Barcode No.") THEN
+                InventoryEntry."Variant Code" := Barcode."Variant Code";
+
+            //LS5.05-02 -
+            InventoryEntry."Sales Type" := POSTransLineTmp."Sales Type";
+            //LS5.05-02 +
+
+            InventoryEntry.INSERT(TRUE);
+
+            IF POSTransLineTmp."Scale Item" OR POSTransLineTmp."Quantity in Barcode" OR POSTransLineTmp."Price in Barcode" THEN
+              Transaction."No. of Items" := Transaction."No. of Items" + 1
+            ELSE
+              Transaction."No. of Items" := Transaction."No. of Items" + InventoryEntry.Quantity;
+          END
+        END ELSE
+          EnterVoidedLine(POSTransLineTmp);
+      UNTIL POSTransLineTmp.NEXT = 0;
+
+      // Delete from buffer
+      POSTransLineTmp.RESET;
+      POSTransLineTmp.DELETEALL;
+    END;
+
+    PROCEDURE CompressSalesTrans@1();
+    VAR
+      Item@1000 : Record 27;
+      InfoEntry@1001 : Record 99008982;
+      LastInfoEntry@1002 : Record 99008982;
+      TotalAmt1@1000000003 : Decimal;
+      TotalAmt2@1000000002 : Decimal;
+      TotalAmtDisc1@1000000001 : Decimal;
+      TotalAmtDisc2@1000000000 : Decimal;
+    BEGIN
+      //CompressSalesTrans
+      POSTransLineTmp.RESET;
+      POSTransLineTmp.DELETEALL;
+      CLEAR(POSTransLineTmp);
+      Transaction."No. of Item Lines" := POSSalesEntry.COUNT;
+
+      IF POSSalesEntry.FIND('-') THEN REPEAT
+        IF NOT Item.GET(POSSalesEntry.Number) THEN
+          CLEAR(Item);
+        IF (POSSalesEntry."Discount Triggered" <> POSTransLineTmp."Discount Triggered") OR
+           (POSSalesEntry."Line Disc. %" <> POSTransLineTmp."Line Disc. %") OR
+           (POSSalesEntry."Discount %" <> POSTransLineTmp."Discount %") OR
+           (POSSalesEntry."Periodic Disc. Type" <> POSTransLineTmp."Periodic Disc. Type") OR
+           (POSSalesEntry."Periodic Disc. Group" <> POSTransLineTmp."Periodic Disc. Group") OR
+           (POSSalesEntry.Price <> POSTransLineTmp.Price) OR
+           (POSSalesEntry."Barcode No." <> POSTransLineTmp."Barcode No.") OR
+           (POSSalesEntry."Variant Code" <> POSTransLineTmp."Variant Code") OR
+           (POSSalesEntry.Number <> POSTransLineTmp.Number) OR
+           (POSSalesEntry."Unit of Measure" <> POSTransLineTmp."Unit of Measure") OR
+           (POSSalesEntry."Price in Barcode") OR (POSSalesEntry."Scale Item") OR (POSSalesEntry."Quantity in Barcode") OR
+           (POSSalesEntry."Price Override") OR (POSSalesEntry."Price Change") OR
+           (POSSalesEntry."Entry Status" <> POSTransLineTmp."Entry Status") OR
+           (POSSalesEntry."Sales Staff" <> POSTransLineTmp."Sales Staff") OR
+           (POSSalesEntry."Linked No. not Orig." <> POSTransLineTmp."Linked No. not Orig.") OR
+           (POSSalesEntry."Orig. of a Linked Item List" <> POSTransLineTmp."Orig. of a Linked Item List") OR
+           (POSSalesEntry."Tot. Disc Info Line No." <> POSTransLineTmp."Tot. Disc Info Line No.") OR
+           (POSSalesEntry."Serial No." <> '') OR
+           (POSSalesEntry."Weight manually Entered") OR
+
+           //LS5.05-02 -
+           (POSSalesEntry."Sales Type" <> POSTransLineTmp."Sales Type") OR
+           //LS5.05-02 +
+           (POSSalesEntry."Periodic Disc. Group" <> POSTransLineTmp."Periodic Disc. Group") OR //Mod 002
+           (POSSalesEntry."Variant Code" <> POSTransLineTmp."Variant Code") //Mod RN154
+
+        THEN BEGIN
+          POSTransLineTmp := POSSalesEntry;
+          POSTransLineTmp.INSERT;
+
+          //RN000016
+          POSMMEntry.RESET;
+          POSMMEntry.SETRANGE("Receipt No.",POSSalesEntry."Receipt No.");
+          POSMMEntry.SETRANGE("Line No.",POSSalesEntry."Line No.");
+          IF POSMMEntry.FIND('-') THEN BEGIN
+            REPEAT
+              CLEAR(POSMMEntryTmp);
+              POSMMEntryTmp."Receipt No." := POSMMEntry."Receipt No.";
+              POSMMEntryTmp."Line No." := POSMMEntry."Line No.";
+              IF POSMMEntry.Counter > POSMMEntryTmp.Counter THEN
+                POSMMEntryTmp.Counter := POSMMEntry.Counter;
+              POSMMEntryTmp."Mix && Match Group" := POSMMEntry."Mix && Match Group";
+              POSMMEntryTmp."Store No." := POSMMEntry."Store No.";
+              POSMMEntryTmp.Date := POSMMEntry.Date;
+              POSMMEntryTmp.Time := POSMMEntry.Time;
+              POSMMEntryTmp."Discount Amount" := POSMMEntry."Discount Amount";
+              POSMMEntryTmp.Quantity += POSMMEntry.Quantity;
+            UNTIL POSMMEntry.NEXT = 0;
+            POSMMEntryTmp.INSERT;
+          END;
+          //RN000016+
+
+        END ELSE BEGIN
+          InfoEntry.SETRANGE("Receipt No.",POSSalesEntry."Receipt No.");
+          InfoEntry.SETRANGE("Transaction Type",InfoEntry."Transaction Type"::"Sales Entry");
+          InfoEntry.SETRANGE("Line No.",POSSalesEntry."Line No.");
+          IF NOT InfoEntry.FIND('-') THEN
+            CLEAR(InfoEntry);
+          LastInfoEntry.SETRANGE("Receipt No.",POSTransLineTmp."Receipt No.");
+          LastInfoEntry.SETRANGE("Transaction Type",LastInfoEntry."Transaction Type"::"Sales Entry");
+          LastInfoEntry.SETRANGE("Line No.",POSTransLineTmp."Line No.");
+          IF NOT LastInfoEntry.FIND('-') THEN
+            CLEAR(LastInfoEntry);
+          IF (LastInfoEntry."Receipt No." <> '') OR (InfoEntry."Receipt No." <> '') THEN BEGIN
+            POSTransLineTmp := POSSalesEntry;
+            POSTransLineTmp.INSERT;
+
+            //RN000016
+            POSMMEntry.RESET;
+            POSMMEntry.SETRANGE("Receipt No.",POSSalesEntry."Receipt No.");
+            POSMMEntry.SETRANGE("Line No.",POSSalesEntry."Line No.");
+            IF POSMMEntry.FIND('-') THEN BEGIN
+              REPEAT
+                POSMMEntryTmp."Receipt No." := POSMMEntry."Receipt No.";
+                POSMMEntryTmp."Line No." := POSMMEntry."Line No.";
+                IF POSMMEntry.Counter > POSMMEntryTmp.Counter THEN
+                  POSMMEntryTmp.Counter := POSMMEntry.Counter;
+                POSMMEntryTmp."Mix && Match Group" := POSMMEntry."Mix && Match Group";
+                POSMMEntryTmp."Store No." := POSMMEntry."Store No.";
+                POSMMEntryTmp.Date := POSMMEntry.Date;
+                POSMMEntryTmp.Time := POSMMEntry.Time;
+                POSMMEntryTmp."Discount Amount" := POSMMEntry."Discount Amount";
+                POSMMEntryTmp.Quantity += POSMMEntry.Quantity;
+              UNTIL POSMMEntry.NEXT = 0;
+              POSMMEntryTmp.INSERT;
+            END;
+            //RN000016+
+
+          END ELSE BEGIN
+
+            //RN000016
+            //IF ((POSTransLineTmp."Periodic Disc. %" <> 0) OR
+              TotalAmt1 := POSTransLineTmp.Quantity * POSTransLineTmp.Price;
+              TotalAmt2 := POSSalesEntry.Quantity * POSSalesEntry.Price;
+              TotalAmtDisc1 := (POSTransLineTmp."Periodic Disc. %" / 100)* TotalAmt1;
+              TotalAmtDisc2 := (POSSalesEntry."Periodic Disc. %" / 100) * TotalAmt2;
+              IF (TotalAmt1 + TotalAmt2) <> 0 THEN
+                POSTransLineTmp."Periodic Disc. %" :=
+                  ((TotalAmtDisc1 + TotalAmtDisc2) / (TotalAmt1 + TotalAmt2)) * 100;
+            //RN000016+
+
+            POSTransLineTmp.Quantity += POSSalesEntry.Quantity;
+            POSTransLineTmp."Discount Amount" += POSSalesEntry."Discount Amount";
+            POSTransLineTmp."Cost Amount" += POSSalesEntry."Cost Amount";
+            POSTransLineTmp."Net Amount" += POSSalesEntry."Net Amount";
+            POSTransLineTmp."VAT Amount" += POSSalesEntry."VAT Amount";
+            POSTransLineTmp."Tax Amount" += POSSalesEntry."Tax Amount"; // NAVIN
+            POSTransLineTmp.Amount += POSSalesEntry.Amount;
+            POSTransLineTmp."Quantity Discounted" += POSSalesEntry."Quantity Discounted";
+            POSTransLineTmp."Total Disc. Amount" += POSSalesEntry."Total Disc. Amount";
+            POSTransLineTmp."Discount Amt. for Printing" += POSSalesEntry."Discount Amt. for Printing";
+            POSTransLineTmp."Periodic Discount Amount" += POSSalesEntry."Periodic Discount Amount";
+            POSTransLineTmp.MODIFY;
+
+            //RN000016
+            POSMMEntry.RESET;
+            POSMMEntry.SETRANGE("Receipt No.",POSSalesEntry."Receipt No.");
+            POSMMEntry.SETRANGE("Line No.",POSSalesEntry."Line No.");
+            IF POSMMEntry.FIND('-') THEN
+            REPEAT
+                IF POSMMEntry.Counter > POSMMEntryTmp.Counter THEN
+                BEGIN
+                  POSMMEntryTmp2 := POSMMEntryTmp;
+                  POSMMEntryTmp2.Counter := POSMMEntry.Counter;
+                  POSMMEntryTmp.DELETE;
+                  POSMMEntryTmp := POSMMEntryTmp2;
+                  POSMMEntryTmp.INSERT;
+                END;
+                POSMMEntryTmp."Discount Amount" += POSMMEntry."Discount Amount";
+                POSMMEntryTmp.Quantity += POSMMEntry.Quantity;
+                POSMMEntryTmp.MODIFY;
+            UNTIL POSMMEntry.NEXT = 0;
+            //RN000016+
+
+          END;
+        END;
+      UNTIL POSSalesEntry.NEXT = 0;
+    END;
+
+    PROCEDURE InsertTransaction@4(POSTrans@1200070000 : Record 99008980);
+    VAR
+      TmpTrans@1000 : Record 99001472;
+      TmpTrans2@1003 : Record 99001472;
+      InitEntryNoInStore@1001 : Record 99001469;
+      InitNo@1002 : Integer;
+      RecInvvoiceEmailLogInsert@1170000000 : Record 50284;
+      RecPlannetDetailInsert@1170000001 : Record 50288;
+      RecTransAdd@1170000031 : Record 72008;
+      "-------DAMAS17052021------"@1170000002 : Integer;
+      recPOSAddressLocal@1170000003 : Record 72009;
+      "-----------Damas241122-----"@1170000032 : Integer;
+      recTransalesEntry@1170000004 : Record 99001473;
+      recTranPaymentEntry@1170000005 : Record 99001474;
+      recTranIncomeExpan@1170000006 : Record 99001475;
+      recPlanetSalesEntry@1000000000 : Record 50289;
+      recTSE1@1000000001 : Record 99001473;
+      recCustomerConcentLog@1000000002 : Record 50290;
+    BEGIN
+      //InsertTransaction
+      StatementCode := FindStatementCode;
+
+      Transaction.LOCKTABLE;
+      Transaction.INIT;
+
+      Transaction."Transaction No." := 0;
+      InitNo := InitEntryNoInStore.GetPOSInitEntryNo(DATABASE::Transaction,POSTrans."Store No.",
+                                                     POSTrans."POS Terminal No.");
+      //Vishal Start
+      {
+      TmpTrans.SETRANGE("Store No.",POSTrans."Store No.");
+      TmpTrans.SETRANGE("POS Terminal No.",POSTrans."POS Terminal No.");
+      IF TmpTrans.FIND('+') THEN;
+      }
+      TmpTrans.SETCURRENTKEY("Store No.","Transaction No.");
+      TmpTrans.SETRANGE("Store No.",POSTransaction."Store No.");
+
+      IF TmpTrans.FIND('+') THEN;
+
+      TmpTrans2.SETCURRENTKEY("Store No.","Transaction No.");
+      TmpTrans2.SETRANGE("Store No.",TmpTrans."Store No.");
+      TmpTrans2.SETRANGE("Transaction No.",TmpTrans."Transaction No."+1);
+
+      IF (TmpTrans."Transaction No." = 0) OR (TmpTrans2.FIND('-')) THEN BEGIN
+        TmpTrans.RESET;
+        IF TmpTrans.FIND('+') THEN;
+      END;
+
+      //Vishal End
+      IF InitNo > (TmpTrans."Transaction No." + 1) THEN
+        Transaction."Transaction No." := InitNo
+      ELSE
+        Transaction."Transaction No." := TmpTrans."Transaction No." + 1;
+
+      Transaction."Receipt No."                := POSTrans."Receipt No.";
+      Transaction."Store No."                  := POSTrans."Store No.";
+      Transaction."POS Terminal No."           := POSTrans."POS Terminal No.";
+      Transaction."Created on POS Terminal"    := POSTrans."Created on POS Terminal";
+      Transaction."Staff ID"                   := POSTrans."Staff ID";
+      Transaction.Date                         := POSTrans."Trans. Date";
+      Transaction."Original Date"              := POSTrans."Original Date";
+      Transaction.Time                         := POSTrans."Trans Time";
+      Transaction."Time when Total Pressed"    := POSTrans."Time when Total Pressed";
+      Transaction."Time when Trans. Closed"    := TIME;
+      Transaction."Shift No."                  := POSTrans."Shift No.";
+      Transaction."Shift Date"                 := POSTrans."Shift Date";
+      Transaction."Customer No."               := POSTrans."Customer No.";
+      Transaction."Statement Code"             := StatementCode;
+      Transaction."Sale Is Return Sale"        := POSTrans."Sale Is Return Sale";
+      Transaction."Transaction Type"           := POSTrans."Transaction Type";
+      Transaction."Trans. Currency"            := POSTrans."Trans. Currency Code";
+      Transaction."Retrieved from Receipt No." := POSTrans."Retrieved from Receipt No.";
+      Transaction."Table No."                  := POSTrans."Table No.";
+      Transaction."Infocode Disc. Group"       := POSTrans."Infocode Disc. Group";
+      Transaction."Post as Shipment"           := POSTrans."Post as Shipment";
+      Transaction."VAT Bus.Posting Group"      := POSTrans."VAT Bus.Posting Group";
+      //Transaction."Promotion Description"      := POSTransaction."Promotion Description"; // Ticket10059273 DT-20200120 GITL VC COMMENT
+      Transaction."Promotion Description"      := POSTrans."Promotion Description";  // Ticket10059273 DT-20200120 GITL VC ADD
+      //GITL 002 Start - 06/02/2011
+      Transaction."Promotion Code" := POSTransaction."Promotion Code";
+      //GITL 002 End - 06/02/2011
+
+      // MOD RA DSC ....
+      Transaction."Currency Factor" := POSTransaction."Currency Factor";
+      IF POSTrans."Entry Status" = POSTrans."Entry Status"::Training THEN
+        Transaction."Entry Status" := Transaction."Entry Status"::Training;
+      IF POSTrans."Customer No." <> '' THEN
+        Transaction."To Account" := TRUE;
+      //Mod 01 IH
+      Transaction."Store Group Code" := Store."Store Group Code";
+      Transaction."Store Sub Group Code" := Store."Store Category Code";
+      //End 01
+
+      // DOC CN 29/07/2004 -
+      // Fill in the Suspended Slip number to ensure it can be printed on the Cash memo later
+      Transaction."Suspended Slip No." := POSTransaction."Suspended Slip No.";
+      Transaction."Suspension Requires Fixing" := POSTransaction."Suspension Requires Fixing";
+      // DOC CN 29/07/2004 -
+
+      //Mod ?? IH
+      Transaction."Sales Order No." := POSTransaction."Sales Order No.";
+      //End ??
+      //DOC PG11 11.09.06 -
+      IF gRecStore.GET(Transaction."Store No.") THEN
+       Transaction."Responsibility Center Code" := gRecStore."Responsibility Center";
+
+      IF gRecRespCenter.GET(Transaction."Responsibility Center Code") THEN
+       Transaction."Sub Company Code":=gRecRespCenter."Sub Company Code";
+      //DOC PG11 11.09.06 +
+
+      IF Transaction."Transaction Type" = Transaction."Transaction Type"::"Open Drawer" THEN
+        Transaction."Open Drawer" := TRUE;
+
+      Transaction."Sell-to Contact No."        := POSTrans."Sell-to Contact No.";
+      Transaction."Gift Registration No."      := POSTrans."Gift Registration No.";
+      Transaction."Loyalty Card No."           := POSTrans."Loyalty Card No.2";
+      Transaction."Loyalty Scheme"             := POSTrans."Loyalty Scheme";
+
+      Transaction."Sales Type"                 := POSTrans."Sales Type";
+      Transaction."Customer Disc. Group"       := POSTrans."Customer Disc. Group";
+
+      Transaction.INSERT(TRUE);
+
+      //DAMAS17052021
+      IF (POSTransaction."Entry Status" <> POSTransaction."Entry Status"::Voided) AND (POSTransaction."Income/Exp. Amount" = 0) THEN
+      BEGIN
+         IF recPOSAddressLocal.GET(POSTransaction."Receipt No.") THEN;
+           RecInvvoiceEmailLogInsert.INIT;
+           RecInvvoiceEmailLogInsert."Store Code" := POSTransaction."Store No." ;
+           RecInvvoiceEmailLogInsert."Transaction No." := Transaction."Transaction No.";
+           RecInvvoiceEmailLogInsert."Transaction Date" := Transaction.Date ;
+           RecInvvoiceEmailLogInsert."Customer Email" := recPOSAddressLocal.Email;
+           RecInvvoiceEmailLogInsert."Customer Type" := recPOSAddressLocal."Customer Type"; //Added Acx25042023
+           RecInvvoiceEmailLogInsert."Created By" := USERID ;
+           RecInvvoiceEmailLogInsert."Created Date Time" := CURRENTDATETIME ;
+           RecInvvoiceEmailLogInsert.INSERT(TRUE) ;
+      END;
+      //DAMAS17052021
+
+      //DAMAS16022023 BEGIN
+      IF (POSTransaction."Entry Status" <> POSTransaction."Entry Status"::Voided) AND (POSTransaction."Income/Exp. Amount" = 0) THEN BEGIN
+         IF recPOSAddressLocal.GET(POSTransaction."Receipt No.") THEN;
+           recCustomerConcentLog.INIT;
+           recCustomerConcentLog."Store Code" := POSTransaction."Store No." ;
+           recCustomerConcentLog."Transaction No." :=  Transaction."Transaction No.";
+           recCustomerConcentLog."Transaction Date" := Transaction.Date ;
+           recCustomerConcentLog."Customer Concent" := recPOSAddressLocal."Customer Consent";
+           recCustomerConcentLog."Phone No 1" := recPOSAddressLocal."Phone No.";
+           recCustomerConcentLog."Phone No 2" := recPOSAddressLocal."Phone No 2";
+           recCustomerConcentLog."Local No" := recPOSAddressLocal."Mobile No.";
+           recCustomerConcentLog.INSERT(TRUE);
+       END;
+      //DAMAS16022023 END;
+
+
+      //DAMASACX23112022 Plannet BEGIN
+      IF recPOSAddressLocal.GET(POSTransaction."Receipt No.") THEN;
+      IF recTransalesEntry.GET(POSTransaction."Receipt No.") THEN;
+      IF recTranPaymentEntry.GET(POSTransaction."Receipt No.") THEN;
+        IF (recPOSAddressLocal."Customer Type"= recPOSAddressLocal."Customer Type"::Tourist) AND
+        (recTransalesEntry."Return Line" = FALSE)AND (recTranPaymentEntry."Tender Type"<>'68') THEN BEGIN
+          RecPlannetDetailInsert.INIT;
+          RecPlannetDetailInsert."Transaction No" :=   Transaction."Transaction No.";
+          RecPlannetDetailInsert."Posting Date"  :=  Transaction.Date ;
+          RecPlannetDetailInsert."Customer Name" := recPOSAddressLocal."First Name" +''+ recPOSAddressLocal."Middle Name";
+          RecPlannetDetailInsert."Transaction Posting Time" := SYSTEM.TIME ;
+          RecPlannetDetailInsert.INSERT(TRUE);
+        END;
+
+
+      IF recTranIncomeExpan.GET(POSTransaction."Receipt No.") THEN;
+         IF (recPOSAddressLocal."Customer Type"= recPOSAddressLocal."Customer Type"::Tourist) AND
+           (recTranIncomeExpan."No."= '6') THEN BEGIN
+            RecPlannetDetailInsert.INIT;
+            RecPlannetDetailInsert."Transaction No" :=   Transaction."Transaction No.";
+            RecPlannetDetailInsert."Posting Date"  :=  Transaction.Date ;
+            RecPlannetDetailInsert."Customer Name" := recPOSAddressLocal."First Name" +''+ recPOSAddressLocal."Middle Name";
+            RecPlannetDetailInsert."Transaction Posting Time" := SYSTEM.TIME ;
+            RecPlannetDetailInsert.INSERT(TRUE);
+         END;
+       //DAMASACX23112022 Plannet END;
+    END;
+
+    PROCEDURE FindStatementCode@12() StatementCode@1000 : Code[20];
+    BEGIN
+      //FindStatementCode
+      CASE Store."Statement Method" OF
+        Store."Statement Method"::Staff :
+          StatementCode := POSTransaction."Staff ID";
+        Store."Statement Method"::"POS Terminal" :
+          StatementCode := POSTransaction."POS Terminal No.";
+        Store."Statement Method"::Total :
+          StatementCode := '';
+      END;
+      EXIT(StatementCode);
+    END;
+
+    PROCEDURE CheckBalance@8();
+    BEGIN
+      //CheckBalance
+      Difference := Transaction."Gross Amount" + Transaction.Payment + Transaction."Income/Exp. Amount";
+      IF ABS(Difference) > Store."Allowed Diff. in Trans." THEN BEGIN
+        Transaction."Transaction Code" := Transaction."Transaction Code"::"Sale/Pmt. Difference";
+        Transaction."Trans. Sale/Pmt. Diff." := Difference;
+      END;
+      Transaction.Rounded := Difference;
+    END;
+
+    PROCEDURE FindStandardNetPrice@14() : Decimal;
+    BEGIN
+      EXIT(0);
+    END;
+
+    PROCEDURE RemoveAdd@27();
+    VAR
+      TenderTypeTable@1200070000 : Record 99001466;
+      FloatTenderType@1200070001 : Record 99001462;
+      CashMgt@1100409000 : Codeunit 99001488;
+    BEGIN
+      //RemoveAdd
+
+      TenderTypeTable.SETRANGE("Default Function",TenderTypeTable."Default Function"::"Tender Remove/Float");
+      TenderTypeTable.FINDFIRST;
+      FloatTenderType.GET(Store."No.",TenderTypeTable.Code);
+
+      CLEAR(PaymentEntry);
+      PaymentEntry."Transaction No." := Transaction."Transaction No.";
+      PaymentEntry."Line No." := PaymentEntry."Line No." + 1;
+      PaymentEntry."Receipt No." := Transaction."Receipt No.";
+      PaymentEntry."Statement Code" := Transaction."Statement Code";
+      PaymentEntry."Exchange Rate" := 1;
+      PaymentEntry."Tender Type" := FloatTenderType.Code;
+      PaymentEntry."Amount Tendered" := -Transaction.Payment;
+      PaymentEntry."Amount in Currency" := -Transaction.Payment;
+      PaymentEntry.Date := Transaction.Date;
+      PaymentEntry.Time := Transaction.Time;
+      PaymentEntry."Shift No." := Transaction."Shift No.";
+      PaymentEntry."Shift Date" := Transaction."Shift Date";
+      PaymentEntry."Staff ID" := Transaction."Staff ID";
+      PaymentEntry."Store No." := Transaction."Store No.";
+      PaymentEntry."POS Terminal No." := Transaction."POS Terminal No.";
+      PaymentEntry."Transaction Status" := Transaction."Entry Status";
+      PaymentEntry."Statement No." := Transaction."Statement No.";
+
+      CashMgt.UpdatePaymentEntry(PaymentEntry);
+
+      PaymentEntry.INSERT(TRUE);
+
+      Transaction.Payment := Transaction.Payment + PaymentEntry."Amount Tendered";
+      Transaction."No. of Payment Lines" := Transaction."No. of Payment Lines" + 1;
+    END;
+
+    PROCEDURE EnterVoidedLine@9(VLine@1000 : Record 99008981);
+    VAR
+      InfoCodeEntry@1001 : Record 99008982;
+      VoidedLine@1002 : Record 99008991;
+      VoidedInfoCodeEntry@1003 : Record 99008992;
+      tmpInfoCodeEntry@1004 : Record 99008982;
+    BEGIN
+      //EnterVoidedLine
+      VoidedLine.TRANSFERFIELDS(VLine);
+      //MOD SCH GEN
+      VoidedLine."Staff ID." := Transaction."Staff ID";
+      VoidedLine.Date := Transaction.Date;
+      VoidedLine.Time := Transaction.Time;
+      VoidedLine.INSERT(TRUE);
+
+      InfoCodeEntry.SETRANGE("Receipt No.",VLine."Receipt No.");
+      InfoCodeEntry.SETRANGE("Line No.",VLine."Line No.");
+      IF InfoCodeEntry.FIND('-') THEN REPEAT
+        VoidedInfoCodeEntry.TRANSFERFIELDS(InfoCodeEntry);
+        VoidedInfoCodeEntry.INSERT(TRUE);
+        tmpInfoCodeEntry := InfoCodeEntry;
+        tmpInfoCodeEntry.DELETE;
+      UNTIL InfoCodeEntry.NEXT = 0;
+    END;
+
+    PROCEDURE GetShift@21(VAR Transaction@1000 : Record 99001472);
+    BEGIN
+      //GetShift
+      IF Store."Closing Method" <> Store."Closing Method"::Shift THEN
+        EXIT;
+      FindWorkShift;
+      IF Store."Statement Method" = Store."Statement Method"::Staff THEN
+        WorkShiftEntry."Statement Code" := Transaction."Staff ID"
+      ELSE
+        WorkShiftEntry."Statement Code" := Transaction."POS Terminal No.";
+
+      IF NOT WorkShiftEntry.GET(WorkShift."Store No.",WorkShift."Shift Date",
+        WorkShift."Shift No.",WorkShiftEntry."Statement Code") THEN
+        InsertWorkShiftEntry;
+
+      Transaction."Shift Date" := WorkShift."Shift Date";
+
+      IF WorkShiftEntry.Status >= WorkShiftEntry.Status::Closed THEN
+        Transaction."Wrong Shift" := TRUE;
+
+      IF Store."Max. Diff. from Shift Date" = 0 THEN BEGIN
+        IF ABS(DiffFromDateTime) > 4 THEN
+          Transaction."Wrong Shift" := TRUE;
+      END ELSE BEGIN
+        IF ABS(DiffFromDateTime) > Store."Max. Diff. from Shift Date" THEN
+          Transaction."Wrong Shift" := TRUE;
+      END;
+    END;
+
+    PROCEDURE GetLastTransaction@1200070000(VAR Trans@1200070000 : Record 99001472);
+    BEGIN
+      //GetLastTransaction
+      Trans := Transaction;
+    END;
+
+    PROCEDURE FindWorkShift@24();
+    VAR
+      Diff@1000 : Decimal;
+    BEGIN
+      //FindWorkShift
+      WorkShiftSetup.GET(Transaction."Store No.",Transaction."Shift No.");
+      CLEAR(WorkShift);
+      WorkShift."Store No." := Transaction."Store No.";
+      WorkShift."Shift No." := Transaction."Shift No.";
+
+      WorkShift."Shift Date" := Transaction.Date;
+
+      IF WorkShiftSetup."Start Time" > WorkShiftSetup."End Time" THEN  BEGIN
+        IF Transaction.Time > WorkShiftSetup."End Time" THEN BEGIN
+          IF WorkShiftSetup."Date Reference" <> WorkShiftSetup."Date Reference"::"Start Time" THEN
+            WorkShift."Shift Date" := WorkShift."Shift Date" + 1;
+        END
+        ELSE BEGIN
+          IF WorkShiftSetup."Date Reference" = WorkShiftSetup."Date Reference"::"Start Time" THEN
+            WorkShift."Shift Date" := WorkShift."Shift Date" - 1;
+        END;
+      END;
+
+      IF WorkShiftSetup."Start Time" > WorkShiftSetup."End Time" THEN BEGIN
+        IF WorkShiftSetup."Date Reference" = WorkShiftSetup."Date Reference"::"Start Time" THEN BEGIN
+          WorkShift."Start Date" := WorkShift."Shift Date";
+          WorkShift."End Date" := WorkShift."Shift Date" + 1;
+        END
+        ELSE BEGIN
+          WorkShift."Start Date" := WorkShift."Shift Date" - 1;
+          WorkShift."End Date" := WorkShift."Shift Date";
+        END;
+      END
+      ELSE BEGIN
+        WorkShift."Start Date" := WorkShift."Shift Date";
+        WorkShift."End Date" := WorkShift."Shift Date";
+      END;
+      WorkShift."Start Time" := WorkShiftSetup."Start Time";
+      WorkShift."End Time" := WorkShiftSetup."End Time";
+      WorkShift.Status := WorkShift.Status::Open;
+
+      Diff := DiffFromDateTime;
+      IF Diff < -12 THEN
+        WorkShift."Shift Date" := WorkShift."Shift Date" - 1;
+      IF Diff > 12 THEN
+        WorkShift."Shift Date" := WorkShift."Shift Date" + 1;
+
+      IF NOT WorkShift.GET(WorkShift."Store No.",WorkShift."Shift Date",WorkShift."Shift No.") THEN BEGIN
+        IF WorkShiftSetup."Start Time" > WorkShiftSetup."End Time" THEN BEGIN
+          IF WorkShiftSetup."Date Reference" = WorkShiftSetup."Date Reference"::"Start Time" THEN BEGIN
+            WorkShift."Start Date" := WorkShift."Shift Date";
+            WorkShift."End Date" := WorkShift."Shift Date" + 1;
+          END
+          ELSE BEGIN
+            WorkShift."Start Date" := WorkShift."Shift Date" - 1;
+            WorkShift."End Date" := WorkShift."Shift Date";
+          END;
+        END
+        ELSE BEGIN
+          WorkShift."Start Date" := WorkShift."Shift Date";
+          WorkShift."End Date" := WorkShift."Shift Date";
+        END;
+        WorkShift.INSERT(TRUE);
+      END;
+    END;
+
+    PROCEDURE InsertWorkShiftEntry@25();
+    VAR
+      POSTransServerUtil@10012000 : Codeunit 99008909;
+    BEGIN
+      //InsertWorkShiftEntry
+      CLEAR(WorkShiftEntry);
+      WorkShiftEntry."Store No." := WorkShift."Store No.";
+      WorkShiftEntry."Shift Date" := WorkShift."Shift Date";
+      WorkShiftEntry."Shift No." := WorkShift."Shift No.";
+      WorkShiftEntry.Status := WorkShiftEntry.Status::Open;
+      WorkShiftEntry."Opening Date" := Transaction.Date;
+      WorkShiftEntry."Opening Time" := Transaction.Time;
+      IF Store."Statement Method" = Store."Statement Method"::Staff THEN
+        WorkShiftEntry."Statement Code" := Transaction."Staff ID"
+      ELSE
+        WorkShiftEntry."Statement Code" := Transaction."POS Terminal No.";
+      WorkShiftEntry."Statement Method" := Store."Statement Method";
+      WorkShiftEntry.INSERT(TRUE);
+
+      //LS5.05-01 -
+      POSTransServerUtil.Initialize;
+      POSTransServerUtil.MarkWorkShiftEntryForUpdate(WorkShiftEntry);
+      //LS5.05-01 +
+    END;
+
+    PROCEDURE DiffFromDateTime@26() : Decimal;
+    BEGIN
+      //DiffFromDateTime
+      IF Hours(WorkShift."Start Date",WorkShift."Start Time",
+               Transaction.Date,Transaction.Time) < 0 THEN
+        EXIT((Hours(WorkShift."Start Date",WorkShift."Start Time",
+              Transaction.Date,Transaction.Time)));
+      IF Hours(WorkShift."End Date",WorkShift."End Time",
+               Transaction.Date,Transaction.Time) > 0 THEN
+        EXIT((Hours(WorkShift."End Date",WorkShift."End Time",
+              Transaction.Date,Transaction.Time)));
+      EXIT(0);
+    END;
+
+    PROCEDURE Hours@22(StartDate@1000 : Date;StartTime@1001 : Time;EndDate@1002 : Date;EndTime@1003 : Time) : Decimal;
+    BEGIN
+      //Hours
+      EXIT(ROUND(((EndDate - StartDate) * 24) + ((EndTime - StartTime) / 3600000),0.01));
+    END;
+
+    PROCEDURE InsertDealInfo@1100409000(POSTransLine@1100409000 : Record 99008981;TransactionHeader@1100409002 : Record 99001472);
+    VAR
+      DealEntry@1100409001 : Record 99001460;
+      DealPOSTransLine@1100409003 : Record 99008981;
+    BEGIN
+      //InsertDealInfo
+
+      IF tmpDealEntry.GET(POSTransLine."Store No.",POSTransLine."POS Terminal No.",TransactionHeader."Transaction No."
+                          ,POSTransLine."Disc. Info Line No.") THEN
+        EXIT;
+
+      tmpDealEntry."Store No." := POSTransLine."Store No.";
+      tmpDealEntry."POS Terminal No." := POSTransLine."POS Terminal No.";
+      tmpDealEntry."Transaction No." := TransactionHeader."Transaction No.";
+      tmpDealEntry."Line No." := POSTransLine."Disc. Info Line No.";
+      tmpDealEntry.INSERT();
+
+      DealPOSTransLine.GET(POSTransLine."Receipt No.",POSTransLine."Disc. Info Line No.");
+
+      DealEntry."Store No." := POSTransLine."Store No.";
+      //DealEntry."POS Terminal No." := POSTransLine."POS Terminal No.";
+      DealEntry."POS Terminal No." := TransactionHeader."POS Terminal No.";
+      DealEntry."Transaction No." := TransactionHeader."Transaction No.";
+      DealEntry."Line No." := POSTransLine."Line No.";
+      DealEntry."Deal No." := POSTransLine."Promotion No.";
+      DealEntry.Quantity := DealPOSTransLine.Quantity;
+      DealEntry.Amount := DealPOSTransLine.Amount;
+      DealEntry.Price := DealPOSTransLine.Price;
+      DealEntry.Date := TransactionHeader.Date;
+      DealEntry.INSERT(TRUE);
+    END;
+
+    PROCEDURE InsertTextTransaction@1200070001();
+    VAR
+      POSTextEntry@1200070000 : Record 99008981;
+    BEGIN
+      //InsertTextTransaction
+      POSTextEntry.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSTextEntry.SETRANGE("Entry Type",POSTextEntry."Entry Type"::FreeText);
+      POSTextEntry.SETRANGE("Entry Status",0);
+
+      IF POSTextEntry.FIND('-') THEN REPEAT
+        InfoEntry.INIT;
+        InfoEntry."Transaction No." := Transaction."Transaction No.";
+        InfoEntry."Transaction Type" := InfoEntry."Transaction Type"::"Sales Entry";
+        InfoEntry."Line No." := POSTextEntry."Line No.";
+        InfoEntry.Infocode := 'TEXT';
+        InfoEntry."Store No." := POSTransaction."Store No.";
+        InfoEntry.Information := POSTextEntry.Description;
+        InfoEntry.Date := POSTransaction."Trans. Date";
+        InfoEntry.Time := POSTransaction."Trans Time";
+        InfoEntry."POS Terminal No." := POSTextEntry."POS Terminal No.";
+        InfoEntry."Staff ID" := POSTransaction."Staff ID";
+        InfoEntry."Statement Code" := StatementCode;
+        InfoEntry.INSERT(TRUE);
+      UNTIL POSTextEntry.NEXT = 0;
+    END;
+
+    PROCEDURE DistributeCouponDiscount@10012004();
+    VAR
+      CouponLine@10012000 : Record 99001622;
+      POSTransLine@10012002 : Record 99008981;
+      tmpPOSTransLine@10012001 : TEMPORARY Record 99008981;
+      PosFuncProfile@10012004 : Record 99001515;
+      TotalAmount@10012003 : Decimal;
+      discAmount@10012005 : Decimal;
+      totDiscAmount@10012006 : Decimal;
+    BEGIN
+      //DistributeCouponDiscount
+
+      IF NOT PosFuncProfile.GET(Globals.GetValue('LSFUNCPROFILE')) THEN  //LS5.05-05
+        PosFuncProfile.GET(Store."POS Func. Profile");
+      TotalAmount := 0;
+      tmpPOSTransLine.DELETEALL;
+
+      //affects next and last line distributed in pos, adjust amounts
+      POSTransLine.SETCURRENTKEY("Receipt No.","Entry Type","Entry Status");
+      POSTransLine.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSTransLine.SETRANGE("Entry Type",POSTransLine."Entry Type"::Item);
+      POSTransLine.SETRANGE("Entry Status",POSTransLine."Entry Status"::" ");
+
+      IF POSTransLine.FINDFIRST AND AffectsNextLastInTrans THEN REPEAT
+        IF POSTransLine."Coupon Discount Amount" <> 0 THEN BEGIN
+          POSTransLine."Discount Amount" += POSTransLine."Coupon Discount Amount";
+          POSTransLine.Amount -= POSTransLine."Coupon Discount Amount";
+          POSTransLine."Net Amount" := POSTransLine.Amount / (1 + (POSTransLine."VAT %" / 100));
+          POSTransLine."VAT Amount" := POSTransLine.Amount - POSTransLine."Net Amount";
+          POSTransLine.MODIFY;
+        END;
+      UNTIL POSTransLine.NEXT = 0;
+
+
+      tmpCouponHeader.SETRANGE(Affects,tmpCouponHeader.Affects::"Any Item Line");
+      IF tmpCouponHeader.FINDFIRST THEN REPEAT
+
+        totDiscAmount := tmpCouponHeader."Discount Value";
+        IF tmpCouponHeader.Type = tmpCouponHeader.Type::"Return Coupon" THEN BEGIN
+          POSTransLine.SETCURRENTKEY("Receipt No.","Entry Type","Entry Status");
+          POSTransLine.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+          POSTransLine.SETRANGE("Entry Type",POSTransLine."Entry Type"::Item);
+          POSTransLine.SETRANGE("Entry Status",POSTransLine."Entry Status"::" ");
+
+          IF POSTransLine.FINDFIRST THEN REPEAT
+            tmpPOSTransLine := POSTransLine;
+            tmpPOSTransLine.INSERT;
+            TotalAmount += POSTransLine.Quantity * POSTransLine.Price;
+          UNTIL POSTransLine.NEXT = 0;
+
+        END ELSE BEGIN
+
+          CouponLine.SETRANGE("Coupon Code",tmpCouponHeader.Code);
+          IF CouponLine.FINDFIRST THEN REPEAT
+            CASE CouponLine.Type OF
+              CouponLine.Type::Item :
+              BEGIN
+                POSTransLine.SETCURRENTKEY("Receipt No.","Entry Type",Number);
+                POSTransLine.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+                POSTransLine.SETRANGE("Entry Type",POSTransLine."Entry Type"::Item);
+                POSTransLine.SETRANGE(Number,CouponLine."No.");
+              END;
+
+              CouponLine.Type::"Product Group" :
+                BEGIN
+                  POSTransLine.SETCURRENTKEY("Receipt No.","Entry Type","Item Category Code","Product Group Code");
+                  POSTransLine.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+                  POSTransLine.SETRANGE("Entry Type",POSTransLine."Entry Type"::Item);
+                  POSTransLine.SETRANGE("Item Category Code",CouponLine."Prod. Group Category");
+                  POSTransLine.SETRANGE("Product Group Code",CouponLine."No.");
+                END;
+
+              CouponLine.Type::"Item Category"  :
+                BEGIN
+                  POSTransLine.SETCURRENTKEY("Receipt No.","Entry Type","Item Category Code","Product Group Code");
+                  POSTransLine.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+                  POSTransLine.SETRANGE("Entry Type",POSTransLine."Entry Type"::Item);
+                  POSTransLine.SETRANGE("Item Category Code",CouponLine."No.");
+                END;
+
+              CouponLine.Type::All :
+                BEGIN
+                  POSTransLine.SETCURRENTKEY("Receipt No.","Entry Type","Entry Status");
+                  POSTransLine.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+                  POSTransLine.SETRANGE("Entry Type",POSTransLine."Entry Type"::Item);
+                  POSTransLine.SETRANGE("Entry Status",POSTransLine."Entry Status"::" ");
+                END;
+            END;
+
+            IF POSTransLine.FINDFIRST THEN REPEAT
+              IF (POSTransLine."Entry Status" = POSTransLine."Entry Status"::" ") AND
+                (NOT tmpPOSTransLine.GET(POSTransLine."Receipt No.",POSTransLine."Line No.")) THEN BEGIN
+
+                tmpPOSTransLine := POSTransLine;
+                tmpPOSTransLine.INSERT;
+                TotalAmount += POSTransLine.Quantity * POSTransLine.Price;
+              END;
+            UNTIL POSTransLine.NEXT = 0;
+
+          UNTIL CouponLine.NEXT = 0;
+        END;
+
+        IF tmpPOSTransLine.FINDFIRST THEN REPEAT
+          POSTransLine.GET(tmpPOSTransLine."Receipt No.",tmpPOSTransLine."Line No.");
+          discAmount := ROUND((POSTransLine.Quantity * POSTransLine.Price) / TotalAmount * totDiscAmount,
+            PosFuncProfile."Amount Rounding to");
+          POSTransLine."Coupon Discount Amount" += discAmount;
+          POSTransLine."Discount Amount" += discAmount;
+          POSTransLine.Amount -= discAmount;
+          POSTransLine."Net Amount" := POSTransLine.Amount / (1 + (POSTransLine."VAT %" / 100));
+          POSTransLine."VAT Amount" := POSTransLine.Amount - POSTransLine."Net Amount";
+          //HH +
+          //IF tmpCouponHeader.Type <> tmpCouponHeader.Type::"Return Coupon" THEN
+          //  POSTransLine."Coupon Amt. For Printing" += discAmount;
+          //HH -
+          POSTransLine.MODIFY;
+          tmpCouponHeader."Discount Value" := tmpCouponHeader."Discount Value" - discAmount;
+        UNTIL tmpPOSTransLine.NEXT = 0;
+
+        IF tmpCouponHeader."Discount Value" <> 0 THEN BEGIN
+          POSTransLine."Coupon Discount Amount" += tmpCouponHeader."Discount Value";
+          POSTransLine."Discount Amount" += tmpCouponHeader."Discount Value";
+          POSTransLine.Amount -= tmpCouponHeader."Discount Value";
+          POSTransLine."Net Amount" := POSTransLine.Amount / (1 + (POSTransLine."VAT %" / 100));
+          POSTransLine."VAT Amount" := POSTransLine.Amount - POSTransLine."Net Amount";
+          POSTransLine.MODIFY;
+        END;
+
+        //HH IF tmpCouponHeader.Type = tmpCouponHeader.Type::"Return Coupon" THEN BEGIN
+        //LS5.05-04 -
+        IF totDiscAmount <> 0 THEN BEGIN
+          POSTransLine."Coupon Amt. For Printing" += totDiscAmount;
+          POSTransLine.MODIFY;
+        END;
+        //LS5.05-04 +
+        //HH END;
+
+      UNTIL tmpCouponHeader.NEXT = 0;
+    END;
+
+    PROCEDURE GetCouponBarcodeMaxAmount@10012001(CouponHeader@10012002 : Record 99001621) : Decimal;
+    VAR
+      Mask@1007 : Record 99001459;
+      MaskSegm@1005 : Record 99001480;
+      BarcodeManagement@10012000 : Codeunit 99001450;
+    BEGIN
+      //GetCouponBarcodeMaxAmount
+
+      IF CouponHeader."Barcode Mask" = '' THEN
+        EXIT(0);
+
+      IF NOT BarcodeManagement.FindBarcodeMask(CouponHeader."Barcode Mask",Mask) THEN
+        EXIT(0);
+
+      MaskSegm.SETRANGE("Mask Entry No.",Mask."Entry No.");
+      IF MaskSegm.FIND('-') THEN REPEAT
+        IF MaskSegm.Type = MaskSegm.Type::Price THEN
+            EXIT(POWER(10,MaskSegm.Length - MaskSegm.Decimals) - POWER(0.1,MaskSegm.Decimals))
+      UNTIL MaskSegm.NEXT = 0;
+
+      EXIT(0);
+    END;
+
+    PROCEDURE InsertCouponEntry@72200();
+    VAR
+      CouponSetup@1000 : Record 99001585;
+      CouponEntry2@1001 : Record 99001477;
+      POSCouponEntry@1000000000 : Record 72109;
+      CouponEntry@1000000001 : Record 99001477;
+    BEGIN
+      //added Coupons And Loyality GG
+      POSCouponEntry.SETRANGE("Receipt No.",Transaction."Receipt No.");
+      IF POSCouponEntry.FIND('-') THEN REPEAT
+        IF POSCouponEntry."Entry Status" <> POSCouponEntry."Entry Status"::Voided THEN BEGIN
+          CouponSetup.GET(POSCouponEntry."Coupon ID");
+          CouponEntry.INIT;
+          CouponEntry."Transaction No." := Transaction."Transaction No.";
+          CouponEntry."Line No." := POSCouponEntry."Line No.";
+          CouponEntry."Entry Type" := POSCouponEntry."Entry Type";
+          CouponEntry."Receipt No." := POSCouponEntry."Receipt No.";
+          CouponEntry.Barcode := POSCouponEntry.Barcode;
+          //001 START
+          CouponEntry."Issued Amount" := Sign * POSCouponEntry.Value;
+          //001 STOP
+          CouponEntry.Quantity := Sign * POSCouponEntry.Quantity;
+          CouponEntry.Amount := Sign * POSCouponEntry.Amount;
+          CouponEntry."Coupon Issuer" := POSCouponEntry."Coupon ID";
+          CouponEntry."Item No." := POSCouponEntry."Item No.";
+          CouponEntry."Transaction Status" := POSCouponEntry."Entry Status";
+          CouponEntry.Date := Transaction.Date;
+          CouponEntry."Expiry Date" := CouponSetup."Valid To";
+          CouponEntry."Issue/Redemtion" := POSCouponEntry."Issue/Redemption";
+
+          CouponEntry2.SETCURRENTKEY(Barcode,"Issue/Redemtion");
+          CouponEntry2.SETRANGE(Barcode,CouponEntry.Barcode);
+          IF CouponEntry."Issue/Redemtion" = CouponEntry."Issue/Redemtion"::Issue THEN
+            CouponEntry2.SETRANGE("Issue/Redemtion",CouponEntry."Issue/Redemtion"::Redemption)
+          ELSE
+            CouponEntry2.SETRANGE("Issue/Redemtion",CouponEntry."Issue/Redemtion"::Issue);
+
+          IF CouponEntry2.FIND('-') THEN BEGIN
+            CouponEntry2.Open := FALSE;
+            CouponEntry2."Closed By Entry" := CouponEntry."Transaction No.";
+            CouponEntry2."Closed Date" := CouponEntry.Date;
+            CouponEntry2.MODIFY;
+            CouponEntry.Open := FALSE;
+            CouponEntry."Closed By Entry" := CouponEntry2."Transaction No.";
+            CouponEntry."Closed Date" := CouponEntry.Date;
+          END;
+          //Mod ?? IH
+          CouponEntry."Sales Order No." := Transaction."Sales Order No.";
+          //End ??
+          CouponEntry.INSERT;
+        END;
+      UNTIL POSCouponEntry.NEXT = 0;
+    END;
+
+    PROCEDURE ConvertCouponLines@72201();
+    VAR
+      CouponAndLoyalitySetup@1000 : Record 72080;
+      SalesLine@1001 : Record 99008981;
+      SalesLine2@1002 : Record 99008981;
+    BEGIN
+      {
+      //added for Coupons And Loyality
+      IF NOT CouponAndLoyalitySetup.GET THEN
+        EXIT;
+      IF CouponAndLoyalitySetup."Disc. Trigger Item No." = '' THEN
+        EXIT;
+      SalesLine.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      SalesLine.SETRANGE("Entry Type",SalesLine."Entry Type"::Coupon);
+      IF SalesLine.FIND('-') THEN REPEAT
+        SalesLine2 := SalesLine;
+        SalesLine2."Entry Type" := SalesLine."Entry Type"::Item;
+        SalesLine2.Number := CouponAndLoyalitySetup."Disc. Trigger Item No.";
+        SalesLine2.MODIFY;
+      UNTIL SalesLine.NEXT = 0;
+      }
+    END;
+
+    PROCEDURE xxLandsteinar@1000000001();
+    BEGIN
+    END;
+
+    PROCEDURE GetSalesOrder@1000000000() Order : Code[20];
+    VAR
+      POSTransInfocodeEntry@1000000000 : Record 99008982;
+      AdvancedRetailSetup@1000000001 : Record 72000;
+    BEGIN
+      AdvancedRetailSetup.GET;
+      IF AdvancedRetailSetup."Sales Order Info Code" = '' THEN EXIT('');
+      POSTransInfocodeEntry.RESET;
+      POSTransInfocodeEntry.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      POSTransInfocodeEntry.SETRANGE(Infocode,AdvancedRetailSetup."Sales Order Info Code");
+      IF POSTransInfocodeEntry.FIND('-') THEN
+        EXIT(POSTransInfocodeEntry.Information) ELSE
+        EXIT('');
+    END;
+
+    PROCEDURE InsertAddress@1000000002();
+    VAR
+      POSAddress@1000000000 : Record 72009;
+      TransAddress@1000000001 : Record 72008;
+      RecTransAddress@1170000000 : Record 72008;
+      RecInvvoiceEmailLog@1170000001 : Record 50284;
+      recCRMContactM@1170000002 : Record 72019;
+      recCRMContactM1@1170000003 : Record 72019;
+      recCRMContactM2@1170000004 : Record 72019;
+      recPOSAddress@1170000005 : Record 72008;
+    BEGIN
+      IF POSAddress.GET(POSTransaction."Receipt No.") THEN BEGIN
+        TransAddress.TRANSFERFIELDS(POSAddress);
+        TransAddress."Transaction No." := Transaction."Transaction No.";
+        TransAddress."Store No." := Transaction."Store No.";
+        TransAddress."POS Terminal" := POSTransaction."POS Terminal No.";
+        TransAddress.Date:=Transaction.Date;//VVN
+        TransAddress.INSERT;
+        TransAddress.VALIDATE("Replication Counter");
+        TransAddress.MODIFY;
+      END;
+      //DAMAS17052021 BEGIN
+        RecInvvoiceEmailLog.RESET;
+        RecInvvoiceEmailLog.SETRANGE("Transaction No.",Transaction."Transaction No.");
+        IF RecInvvoiceEmailLog.FIND('-') THEN BEGIN
+           RecTransAddress.RESET;
+           RecTransAddress.SETRANGE("Transaction No.",RecInvvoiceEmailLog."Transaction No.");
+           IF RecTransAddress.FIND('-') THEN BEGIN
+             IF RecTransAddress."Customer Consent" = RecTransAddress."Customer Consent"::Agree THEN
+               RecInvvoiceEmailLog."Customer Consent" := TRUE
+             ELSE
+               RecInvvoiceEmailLog."Customer Consent" := FALSE;
+               RecInvvoiceEmailLog.MODIFY;
+           END;
+        END;
+       //DAMAS17052021 END;
+       {
+       //ACX_KH-02 BEGIN  20 Aug 2022
+      IF (POSTransaction."Entry Status" <> POSTransaction."Entry Status"::Voided)  THEN BEGIN
+      recPOSAddress.RESET;
+      recPOSAddress.SETRANGE(recPOSAddress."Transaction No.",Transaction."Transaction No.");
+      IF recPOSAddress.FIND('-') THEN BEGIN
+        recCRMContactM.RESET();
+        recCRMContactM.SETRANGE(recCRMContactM."Local No",recPOSAddress."Mobile No.");
+         IF recCRMContactM.FIND('-') THEN BEGIN
+             IF recPOSAddress."Mobile No." <> '' THEN BEGIN
+              recCRMContactM."Customer Consent" := recPOSAddress."Customer Consent";
+              recCRMContactM."AML Customer ID" := recPOSAddress."AML Customer ID";
+              recCRMContactM.MODIFY;
+             END;
+          END ELSE
+          recCRMContactM1.RESET();
+          recCRMContactM1.SETRANGE(recCRMContactM1."Phone No 1",recPOSAddress."Phone No.");
+          IF recCRMContactM1.FIND('-') THEN BEGIN
+              IF recPOSAddress."Phone No." <> '' THEN BEGIN
+                recCRMContactM1."Customer Consent"  := recPOSAddress."Customer Consent";
+                recCRMContactM1."AML Customer ID"  :=  recPOSAddress."AML Customer ID";
+                recCRMContactM1.MODIFY;
+              END;
+          END ELSE
+          recCRMContactM2.RESET();
+          recCRMContactM2.SETRANGE(recCRMContactM2."Phone No 2",recPOSAddress."Phone No 2");
+          IF recCRMContactM2.FIND('-') THEN BEGIN
+             IF recPOSAddress."Phone No 2" <> '' THEN BEGIN
+              recCRMContactM2."Customer Consent"  := recPOSAddress."Customer Consent";
+              recCRMContactM2."AML Customer ID"  :=  recPOSAddress."AML Customer ID";
+              recCRMContactM2.MODIFY;
+             END;
+          END;
+        END;
+       END;
+         //ACX_KH-02 END  20 Aug 2022
+         }
+    END;
+
+    PROCEDURE UpdateOrder@1000000003();
+    VAR
+      StoreSalesOrder@1000000000 : Record 50020;
+      StoreSalesOrderLine@1000000001 : Record 50021;
+      StoreSalesOrderLine2@1000000003 : Record 50021;
+      POSLine@1000000002 : Record 99008981;
+    BEGIN
+      StoreSalesOrder.SETCURRENTKEY("Closed By Receipt No.");
+      StoreSalesOrder.SETRANGE("Closed By Receipt No.",POSTransaction."Receipt No.");
+      IF StoreSalesOrder.FIND('-') THEN BEGIN
+        REPEAT
+          IF POSTransaction."Entry Status"=POSTransaction."Entry Status"::Voided THEN BEGIN
+            StoreSalesOrder.Closed:=FALSE;
+            StoreSalesOrder."Closed By Receipt No.":='';
+            StoreSalesOrder."Date Closed":=0D;
+            StoreSalesOrder.MODIFY;
+          END ELSE BEGIN
+            StoreSalesOrder.Status := StoreSalesOrder.Status::Closed;
+            StoreSalesOrder.MODIFY;
+            StoreSalesOrderLine2.SETRANGE("Order No.",StoreSalesOrder."No.");
+            IF StoreSalesOrderLine2.FIND('-') THEN BEGIN
+              REPEAT
+                StoreSalesOrderLine2.Status := StoreSalesOrder.Status;
+                StoreSalesOrderLine2.VALIDATE("Remaining Qty.",0);
+                StoreSalesOrderLine2.VALIDATE("Delivered Qty.",StoreSalesOrderLine2.Quantity);
+                StoreSalesOrderLine2.MODIFY(FALSE);
+              UNTIL StoreSalesOrderLine2.NEXT = 0;
+            END;
+          END;
+        UNTIL StoreSalesOrder.NEXT = 0;
+      END;
+      CLEAR(StoreSalesOrderLine2);
+      StoreSalesOrderLine2.RESET;
+      StoreSalesOrderLine.SETCURRENTKEY("Receipt No.");
+      StoreSalesOrderLine.SETRANGE("Receipt No.",POSTransaction."Receipt No.");
+      IF StoreSalesOrderLine.FIND('-') THEN BEGIN
+        REPEAT
+          IF NOT POSLine.GET(StoreSalesOrderLine."Receipt No.",StoreSalesOrderLine."Receipt Line No.") THEN BEGIN
+            StoreSalesOrderLine2 := StoreSalesOrderLine;
+            //StoreSalesOrderLine2."Receipt No." := '';
+            //StoreSalesOrderLine2."Receipt Line No." := 0;
+            StoreSalesOrderLine2."Transfered To PlusPos":=FALSE;
+            StoreSalesOrderLine2.MODIFY(FALSE);
+          END ELSE BEGIN
+            IF POSTransaction."Entry Status"=POSTransaction."Entry Status"::Voided THEN BEGIN
+              StoreSalesOrderLine2 := StoreSalesOrderLine;
+              StoreSalesOrderLine2."Receipt No." := '';
+              StoreSalesOrderLine2."Receipt Line No." := 0;
+              StoreSalesOrderLine2."Transfered To PlusPos":=FALSE;
+              StoreSalesOrderLine2.MODIFY(FALSE);
+            END ELSE BEGIN
+              StoreSalesOrderLine.VALIDATE("Unit Price",POSLine.Amount);
+              StoreSalesOrderLine."Posting Date" := POSTransaction."Trans. Date";
+              StoreSalesOrderLine.MODIFY(FALSE);
+            END;
+          END;
+        UNTIL StoreSalesOrderLine.NEXT = 0;
+      END;
+    END;
+
+    BEGIN
+    {
+      LOY1.0 Start ....
+      New Function InsertCouponEntry
+      New Function ConvertCouponLines
+      ProcessTransaction Code
+      InsertPaymentTransaction Code
+      InsertSalesTransaction Code // Code Remarked Sales Line Type Required
+      C/AL Globals
+      RunObjSetup Record POS Run Objects
+      POSCouponEntry Record POS Trans. Coupon Entry
+      LOY1.0 End ....
+      //Mod 01 IH Added Store Group and Sub Group Setting
+      MOD001 GG 14.09.2003 Delete Temp Mix & Match Calc Entries
+      //Mod RN17 IH AL1.30 26.09.03
+        Set Sales Order on All Entries and Sales Order Line on Sales Entry From Transaction
+        This can be a) Because the PosTransaction was created as a suspended Trans.
+        OR Because on ORDER info code has been used in Deposit payment
+
+      //MOD RN235 Mark transaction and/or lines with value from Infocode Input
+      //Mod RN239 Copy Address from Pos Address to Trans Address
+      #2  02.10.2003  gld.sa  Statementcode set to length 20
+      //Mod RN193 AL1.32 DS 14.01.04 Service pack 2 and hotfixes applied
+      //MOD 002   AL1.32 fo 19.01.04 The Periodic Disc. Group in the POS Trans. Lines is now retained
+                                     when the lines are compressed.
+      //Mod RN154 AL1.32 fo 11.02.04 The Variant Code is now retained when "POS Trans. Lines" are compressed.
+      //RN000016 - Added to code to deal with error when compressing Mix and Match Entries
+      //Mod RN242 AL1.32 fo 20.02.04 Added field "Price Type" to the list of fields being copied from the POS Trans. Line to
+                                     the Trans. Sales Entry record.
+      //doc wdSal-017 bl 110304 added function UpdateOrder & code to call the same
+
+
+      MOD.    Date     Task   Description
+      ---------------------------------------------------------------------------------------------
+      MAWE01  110206   RFID   Function InsertSalesTransaction changed to transfer fields RFID,TJSID to "Trans. Sales Entry".
+
+
+      LS5.05-01  DK #LS04-02656# 17.10.2007 - Work Shift Entries are now sent with TS
+      LS5.05-02 JSS #LS04-02775# 21.12.2007 - Different Hospitality Types are selling from different Locations and
+                                            - Different Hospitality Types can see the same tables.
+      LS5.05-03 GG  #LS04-02718# 05.02.2008 - Price Group and VAT Bus. posting group from pos trans line to sales entry line
+      LS5.05-04 StK #LS04-02828# 06.02.2008 - Return Coupons/Loyalty empty POS line RecordSet fix.
+      LS5.05-05 EMA #LS04-02827# 28.02.2008 - Add functionality profile to POS Terminal
+
+
+      GITL              001             06/07/2009           CODE MODIFIFED WITH NEW FIELD NAME
+      GITL              002             06/02/2011           CODE Added
+    }
+    END.
+  }
+}
+

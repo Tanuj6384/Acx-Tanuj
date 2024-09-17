@@ -1,0 +1,135 @@
+//----------------------------------------------------------------------------------------------------------   
+  // Gst Start
+//----------------------------------------------------------------------------------------------------------
+
+                   trigger OnAfterGetRecord()
+                    begin
+
+                    IGST_Perc := 0;
+                    IGST_Amt := 0;
+                    CGST_Perc := 0;
+                    CGST_Amt := 0;
+                    SGST_Perc := 0;
+                    SGST_Amt := 0;
+                    if (DataItem2844."Type" <> DataItem2844."Type"::" ") then begin
+                        j := 1;
+                        TaxTransactionValue.Reset();
+                        TaxTransactionValue.SetRange("Tax Record ID", DataItem2844.RecordId);
+                        TaxTransactionValue.SetRange("Tax Type", 'GST');
+                        TaxTransactionValue.SetRange("Value Type", TaxTransactionValue."Value Type"::COMPONENT);
+                        TaxTransactionValue.SetFilter(Percent, '<>%1', 0);
+                        if TaxTransactionValue.FindSet() then
+                            repeat
+                                j := TaxTransactionValue."Value ID";
+                                GSTComponentCode1[j] := TaxTransactionValue."Value ID";
+                                TaxTrnasactionValue1.Reset();
+                                TaxTrnasactionValue1.SetRange("Tax Record ID", DataItem2844.RecordId);
+                                TaxTrnasactionValue1.SetRange("Tax Type", 'GST');
+                                TaxTrnasactionValue1.SetRange("Value Type", TaxTrnasactionValue1."Value Type"::COMPONENT);
+                                TaxTrnasactionValue1.SetRange("Value ID", GSTComponentCode1[j]);
+                                if TaxTrnasactionValue1.FindSet() then
+                                    repeat
+                                        if j = 6 then begin
+                                            SGST_Perc := TaxTrnasactionValue1.Percent;
+                                            SGST_Amt := TaxTrnasactionValue1.Amount;
+                                        end;
+                                        if j = 2 then begin
+                                            CGST_Perc := TaxTrnasactionValue1.Percent;
+                                            CGST_Amt := TaxTrnasactionValue1.Amount;
+                                        end;
+                                        if j = 3 then begin
+                                            IGST_Perc := TaxTrnasactionValue1.Percent;
+                                            IGST_Amt := TaxTrnasactionValue1.Amount;
+                                        end;
+                                    // Taxper := SGST_Perc + CGST_Perc + IGST_Perc;
+                                    until TaxTrnasactionValue1.Next() = 0;
+                                j += 1;
+                            until TaxTransactionValue.Next() = 0;
+                    end;
+                    TotalAmount := IGST_Amt + SGST_Amt + CGST_Amt + DataItem2844."Line Amount";
+  		End;
+//----------------------------------------------------------------------------------------------------------   
+  // Gst End
+//----------------------------------------------------------------------------------------------------------
+
+ 	TaxTransactionValue: Record "Tax Transaction Value";
+        TaxTrnasactionValue1: Record "Tax Transaction Value";
+        GSTComponentCode: array[20] of Integer;
+        Item1: Record Item;
+        j: Integer;
+        Taxper: Decimal;
+
+
+        DetailedGSTEntryBuffer: Record "Detailed GST Ledger Entry";
+        IGST_Perc: Decimal;
+        IGST_Amt: Decimal;
+        CGST_Perc: Decimal;
+        CGST_Amt: Decimal;
+        SGST_Perc: Decimal;
+        SGST_Amt: Decimal;
+        Total_Value: Decimal;
+
+
+//----------------------------------------------------------------------------------------------------------
+//Procedure
+//---------------------------------------------------------------------------------------------------------- 
+
+ //Acx-Tanuj 
+    local procedure GetGSTAmountsLine(SalesLine: Record "Sales Line")
+    var
+        TaxTransactionValue: Record "Tax Transaction Value";
+        GSTSetup: Record "GST Setup";
+        recSalesLine: record "Sales Line";
+    begin
+        if not GSTSetup.Get() then
+            exit;
+
+        recSalesLine.Reset();
+        recSalesLine.SetRange("Document Type", SalesLine."Document Type");
+        recSalesLine.SetRange("Document No.", SalesLine."Document No.");
+        recSalesLine.SetRange("Line No.", SalesLine."Line No.");
+        if recSalesLine.FindSet() then begin
+            TaxTransactionValue.Reset();
+            TaxTransactionValue.SetRange("Tax Record ID", SalesLine.RecordId);
+            TaxTransactionValue.SetRange("Tax Type", GSTSetup."GST Tax Type");
+            TaxTransactionValue.SetRange("Value Type", TaxTransactionValue."Value Type"::COMPONENT);
+            TaxTransactionValue.SetFilter(Percent, '<>%1', 0);
+            if TaxTransactionValue.FindSet() then begin
+                case TaxTransactionValue."Value ID" of
+                    6:
+                        begin
+                            GSTCompPercentLine[1] := TaxTransactionValue.Percent;
+                            GSTCompAmountLine[1] := TaxTransactionValue.Amount;
+                            if GSTComponentCodeLine[1] = '' then
+                                GSTComponentCodeLine[1] := 'SGST';
+                        end;
+                    2:
+                        begin
+                            GSTCompPercentLine[2] := TaxTransactionValue.Percent;
+                            GSTCompAmountLine[2] := TaxTransactionValue.Amount;
+                            if GSTComponentCodeLine[2] = '' then
+                                GSTComponentCodeLine[2] := 'CGST';
+                        end;
+                    3:
+                        begin
+                            GSTCompPercentLine[3] := TaxTransactionValue.Percent;
+                            GSTCompAmountLine[3] := TaxTransactionValue.Amount;
+                            if GSTComponentCodeLine[3] = '' then
+                                GSTComponentCodeLine[3] := 'IGST';
+                        end;
+                    4:
+                        begin
+                            GSTCompPercentLine[4] := TaxTransactionValue.Percent;
+                            GSTCompAmountLine[4] := TaxTransactionValue.Amount;
+                            if GSTComponentCodeLine[4] = '' then
+                                GSTComponentCodeLine[4] := 'CESS';
+                        end;
+                end;
+            end;
+        end;
+    end;
+    //Acx-Tanuj 
+//----------------------------------------------------------------------------------------------------------
+//Procedure
+//---------------------------------------------------------------------------------------------------------- 
+

@@ -1,0 +1,62 @@
+OBJECT Page 60402 Student Fee Structure Page Tan
+{
+  OBJECT-PROPERTIES
+  {
+    Date=05/05/23;
+    Time=12:23:00 PM;
+    Modified=Yes;
+    Version List=;
+  }
+  PROPERTIES
+  {
+    SourceTable=Table60203;
+    PageType=Card;
+  }
+  CONTROLS
+  {
+    { 1102152000;0;Container;
+                ContainerType=ContentArea }
+
+    { 1102152001;1;Group  ;
+                Name=General;
+                GroupType=Group }
+
+    { 1102152002;2;Field  ;
+                SourceExpr=Class }
+
+    { 1102152003;2;Field  ;
+                SourceExpr=Description }
+
+    { 1102152004;2;Field  ;
+                SourceExpr="Admisson Fee" }
+
+    { 1102152005;2;Field  ;
+                SourceExpr="Registration Fee" }
+
+    { 1102152006;2;Field  ;
+                SourceExpr="Transportation Fee" }
+
+    { 1102152007;2;Field  ;
+                SourceExpr="Quarter Fee" }
+
+    { 1102152008;2;Field  ;
+                SourceExpr="Total Fee";
+                OnAssistEdit=BEGIN
+                                 BEGIN
+                                    Rec."Total Fee":= Rec."Admisson Fee" + Rec."Registration Fee" + Rec."Quarter Fee" + Rec."Transportation Fee";
+                                 END;
+                             END;
+                              }
+
+    { 1102152009;2;Field  ;
+                SourceExpr=sortorder }
+
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+

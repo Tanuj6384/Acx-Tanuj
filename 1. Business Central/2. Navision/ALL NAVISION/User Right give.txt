@@ -1,0 +1,28 @@
+1. Search 
+	User personalization
+   search name
+(profile id change)
+
+2. kill session 
+
+Search 
+	Active session (kill session).
+	 
+
+
+
+item 
+service inv
+
+1lacks ka cedit limit dalo
+
+
+
+
+1.Search [user personalization].
+2.Search [profile id] change   [select corp\surname].
+3.open page 9009
+4. click view ==> pageAction
+5.create new Dispatch service call .
+6.open properties SHIFT F4[OBJECT RUN (PAGE 50030 ].
+THEN SAVE as

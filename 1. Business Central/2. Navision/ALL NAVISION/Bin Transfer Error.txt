@@ -1,0 +1,12 @@
+1. search 
+	item Reclass.Journal
+
+== Batchname::: DEFAULT  
+	(posting time ERROR)
+              
+
+2) GO TO TABLE IN NAVD
+	search 
+		* table name (Bin  [7354]) & run.
+		* slect filter {CODE : b21}
+		* find column {stock Date}  & date will do removed.

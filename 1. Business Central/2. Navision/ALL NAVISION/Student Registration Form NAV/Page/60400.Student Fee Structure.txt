@@ -1,0 +1,260 @@
+OBJECT Page 60400 Student Page Tanuj
+{
+  OBJECT-PROPERTIES
+  {
+    Date=05/06/23;
+    Time=11:29:09 AM;
+    Modified=Yes;
+    Version List=;
+  }
+  PROPERTIES
+  {
+    SourceTable=Table60200;
+    PageType=Card;
+    OnOpenPage=BEGIN
+                  BEGIN
+                         IF (Rec.Status = Rec.Status::Open) THEN BEGIN
+                             Editfield := TRUE;
+                         END;
+
+                         IF (Rec.Status = Rec.Status::Release) THEN BEGIN
+                             Editfield := FALSE;
+                         END;
+                     END;
+               END;
+
+    ActionList=ACTIONS
+    {
+      { 1102152021;  ;ActionContainer;
+                      ActionContainerType=ActionItems }
+      { 1102152020;1 ;Action    ;
+                      Name=Reopen;
+                      ShortCutKey=Ctrl+F9;
+                      CaptionML=[ENU=Reopen;
+                                 ENN=Re&lease];
+                      Promoted=Yes;
+                      Image=Open;
+                      PromotedCategory=Process;
+                      OnAction=VAR
+                                 ReleaseSalesDoc@1000 : Codeunit 414;
+                                 Text50000@1102152000 : TextConst 'ENU=Once if an order is cancelled cannot be released again';
+                               BEGIN
+                                    BEGIN
+                                       Editfield := TRUE;
+                                       Rec.Status := Rec.Status::Open;
+                                       Rec.MODIFY();
+                                    END;
+                               END;
+                                }
+      { 1102152019;1 ;Action    ;
+                      Name=Release;
+                      ShortCutKey=Ctrl+F9;
+                      CaptionML=[ENU=Release;
+                                 ENN=Re&lease];
+                      Promoted=Yes;
+                      Image=ReleaseDoc;
+                      PromotedCategory=Process;
+                      OnAction=VAR
+                                 ReleaseSalesDoc@1000 : Codeunit 414;
+                                 Text50000@1102152000 : TextConst 'ENU=Once if an order is cancelled cannot be released again';
+                               BEGIN
+                                    BEGIN
+                                       Editfield := FALSE;
+                                       Rec.Status := Rec.Status::Release;
+                                       Rec.MODIFY();
+
+                                       Rec.TESTFIELD(Name);
+                                       Rec.TESTFIELD(Address);
+                                       Rec.TESTFIELD(DOB);
+                                       Rec.TESTFIELD("Parent Name");
+
+                                    END;
+                               END;
+                                }
+      { 1102152018;1 ;Action    ;
+                      Name=Student Leadger Entry;
+                      ShortCutKey=Ctrl+F9;
+                      CaptionML=[ENU=Student Leadger Entr;
+                                 ENN=Re&lease];
+                      Promoted=Yes;
+                      Image=Ledger;
+                      PromotedCategory=Process;
+                      OnAction=VAR
+                                 ReleaseSalesDoc@1000 : Codeunit 414;
+                                 Text50000@1102152000 : TextConst 'ENU=Once if an order is cancelled cannot be released again';
+                               BEGIN
+                                    BEGIN
+                                       CLEAR(LedgerPage);
+                                       ledger.RESET();
+                                       ledger.SETFILTER("Admission No.", Rec.Admission_No);
+                                       LedgerPage.SETTABLEVIEW(ledger);
+                                       LedgerPage.LOOKUPMODE := TRUE;
+
+                                    IF (LedgerPage.RUNMODAL() = ACTION::LookupOK) THEN BEGIN
+                                       ledger.SETFILTER("Admission No.", Rec.Admission_No);
+                                    END;
+
+                                                 END;
+                               END;
+                                }
+      { 1102152017;1 ;Action    ;
+                      Name=New Student Registration;
+                      ShortCutKey=Ctrl+F9;
+                      CaptionML=[ENU=New Student Registration;
+                                 ENN=Re&lease];
+                      Promoted=Yes;
+                      Image=Report;
+                      PromotedCategory=Report;
+                      OnAction=VAR
+                                 ReleaseSalesDoc@1000 : Codeunit 414;
+                                 Text50000@1102152000 : TextConst 'ENU=Once if an order is cancelled cannot be released again';
+                               BEGIN
+                                   BEGIN
+                                      IF (Rec.Status = Rec.Status::Release) THEN BEGIN
+                                          RecStudent.SETRANGE(Admission_No, Rec.Admission_No);
+                                          REPORT.RUN(60400, TRUE, FALSE, RecStudent);
+                                      END
+
+                                    ELSE BEGIN
+                                          MESSAGE('Please Release The Status For Registration');
+                                       END;
+                                     END;
+                               END;
+                                }
+      { 1102152016;1 ;Action    ;
+                      Name=New Fee Structure;
+                      ShortCutKey=Ctrl+F9;
+                      CaptionML=[ENU=New Fee Structure;
+                                 ENN=Re&lease];
+                      Promoted=Yes;
+                      Image=Report;
+                      PromotedCategory=Report;
+                      OnAction=VAR
+                                 ReleaseSalesDoc@1000 : Codeunit 414;
+                                 Text50000@1102152000 : TextConst 'ENU=Once if an order is cancelled cannot be released again';
+                               BEGIN
+                                  BEGIN
+                                      PAGE.RUN(60402);
+                                  END;
+                               END;
+                                }
+      { 1102152015;1 ;Action    ;
+                      Name=Student Document;
+                      ShortCutKey=Ctrl+F9;
+                      CaptionML=[ENU=Student Document;
+                                 ENN=Re&lease];
+                      Promoted=Yes;
+                      Image=Report;
+                      PromotedCategory=Report;
+                      OnAction=VAR
+                                 ReleaseSalesDoc@1000 : Codeunit 414;
+                                 Text50000@1102152000 : TextConst 'ENU=Once if an order is cancelled cannot be released again';
+                               BEGIN
+                               END;
+                                }
+    }
+  }
+  CONTROLS
+  {
+    { 1102152000;0;Container;
+                ContainerType=ContentArea }
+
+    { 1102152001;1;Group  ;
+                Name=General;
+                GroupType=Group }
+
+    { 1102152002;2;Field  ;
+                SourceExpr=Admission_No;
+                Editable=FALSE }
+
+    { 1102152003;2;Field  ;
+                SourceExpr=Name;
+                Editable=Editfield;
+                ShowMandatory=true }
+
+    { 1102152004;2;Field  ;
+                SourceExpr="Parent Name";
+                Editable=[ Editfield];
+                ShowMandatory=true }
+
+    { 1102152005;2;Field  ;
+                SourceExpr=DOB;
+                Editable=[ Editfield];
+                ShowMandatory=true }
+
+    { 1102152006;2;Field  ;
+                SourceExpr=Address;
+                Editable=[ Editfield];
+                ShowMandatory=true }
+
+    { 1102152007;2;Field  ;
+                SourceExpr="Address 2";
+                Editable=[ Editfield] }
+
+    { 1102152008;2;Field  ;
+                SourceExpr="Post Code";
+                TableRelation="Post Code";
+                Editable=[ Editfield];
+                OnValidate=BEGIN
+                              BEGIN
+                                   PostCode.RESET();
+                                   PostCode.SETFILTER(Code, Rec."Post Code");
+                                IF PostCode.FINDFIRST() THEN
+                                   Rec.City := PostCode.City;
+                              END;
+                           END;
+                            }
+
+    { 1102152009;2;Field  ;
+                SourceExpr=City;
+                Editable=false }
+
+    { 1102152010;2;Field  ;
+                SourceExpr="Mobile No.";
+                Editable=[ Editfield];
+                OnValidate=BEGIN
+                               BEGIN
+                                 Length := STRLEN(Rec."Mobile No.");
+                                IF (Length <> 10) THEN
+                                 ERROR('length should be 10');
+                                 NewStr := COPYSTR(Rec."Mobile No.", 1, 1);
+                                IF (NewStr IN ['1' .. '5']) THEN
+                                 ERROR('Intial should be 6,7,8 & 9');
+                                END;
+                           END;
+                            }
+
+    { 1102152011;2;Field  ;
+                SourceExpr=Class;
+                TableRelation="Student Fee Structure".Class;
+                Editable=[ FALSE] }
+
+    { 1102152012;2;Field  ;
+                SourceExpr=Transportation;
+                Editable=[ Editfield] }
+
+    { 1102152013;2;Field  ;
+                SourceExpr=Balance;
+                Editable=FALSE }
+
+    { 1102152014;2;Field  ;
+                SourceExpr=Status;
+                Editable=FALSE }
+
+  }
+  CODE
+  {
+    VAR
+      PostCode@1102152000 : Record 225;
+      Length@1102152001 : Integer;
+      NewStr@1102152002 : Text[20];
+      Editfield@1102152003 : Boolean;
+      LedgerPage@1102152004 : Page 60403;
+      ledger@1102152005 : Record 60201;
+      RecStudent@1102152006 : Record 60200;
+
+    BEGIN
+    END.
+  }
+}
+

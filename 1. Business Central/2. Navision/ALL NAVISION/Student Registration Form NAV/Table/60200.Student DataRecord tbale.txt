@@ -1,0 +1,69 @@
+OBJECT Table 60200 Student DataRecord tbale
+{
+  OBJECT-PROPERTIES
+  {
+    Date=05/07/23;
+    Time=[ 1:54:31 AM];
+    Modified=Yes;
+    Version List=;
+  }
+  PROPERTIES
+  {
+    OnInsert=BEGIN
+                 IF "No._Series" = '' THEN BEGIN
+                           PaybleSetup.GET();
+                           PaybleSetup.TESTFIELD("Vendor Nos.");
+                           NoSeriesMgt.InitSeries(PaybleSetup."Vendor Nos.", xRec."No._Series", 0D, Admission_No, "No._Series");
+                       END;
+             END;
+
+  }
+  FIELDS
+  {
+    { 1   ;   ;Admission_No        ;Code10        ;OnValidate=BEGIN
+                                                                IF Admission_No <> xRec.Admission_No THEN
+                                                                                    PaybleSetup.GET();
+                                                                                  NoSeriesMgt.TestManual(PaybleSetup."Vendor Nos.");
+                                                                               Rec."No._Series" := '';
+                                                              END;
+
+                                                   DataClassification=ToBeClassified }
+    { 2   ;   ;Name                ;Text30        ;DataClassification=ToBeClassified }
+    { 3   ;   ;Parent Name         ;Text30        ;DataClassification=ToBeClassified }
+    { 4   ;   ;DOB                 ;Date          ;DataClassification=ToBeClassified }
+    { 5   ;   ;Address             ;Text30        ;DataClassification=ToBeClassified }
+    { 6   ;   ;Address 2           ;Text30        ;DataClassification=ToBeClassified }
+    { 7   ;   ;Post Code           ;Text30        ;TableRelation="Post Code";
+                                                   DataClassification=ToBeClassified }
+    { 8   ;   ;City                ;Code10        ;DataClassification=ToBeClassified }
+    { 9   ;   ;Mobile No.          ;Text10        ;DataClassification=ToBeClassified }
+    { 10  ;   ;Class               ;Text30        ;TableRelation="Student Fee Structure";
+                                                   DataClassification=ToBeClassified }
+    { 11  ;   ;Transportation      ;Boolean       ;DataClassification=ToBeClassified }
+    { 12  ;   ;Balance             ;Decimal       ;FieldClass=FlowField;
+                                                   CalcFormula=Sum("Student Ledger Entry Tanuj"."Remaning  Amount" WHERE (Admission No.=FIELD(Admission_No))) }
+    { 13  ;   ;Status              ;Option        ;DataClassification=ToBeClassified;
+                                                   OptionCaptionML=ENU=Open,Release;
+                                                   OptionString=Open,Release }
+    { 14  ;   ;No._Series          ;Code10        ;TableRelation="No. Series";
+                                                   DataClassification=ToBeClassified }
+  }
+  KEYS
+  {
+    {    ;Admission_No                            ;Clustered=Yes }
+    { No ;                                         }
+  }
+  FIELDGROUPS
+  {
+  }
+  CODE
+  {
+    VAR
+      PaybleSetup@1102152000 : Record 312;
+      NoSeriesMgt@1102152001 : Codeunit 396;
+
+    BEGIN
+    END.
+  }
+}
+

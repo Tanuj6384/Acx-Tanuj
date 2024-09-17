@@ -1,0 +1,42 @@
+OBJECT Table 60203 Student Fee Structure
+{
+  OBJECT-PROPERTIES
+  {
+    Date=05/05/23;
+    Time=[ 5:40:28 AM];
+    Modified=Yes;
+    Version List=;
+  }
+  PROPERTIES
+  {
+  }
+  FIELDS
+  {
+    { 1   ;   ;Class               ;Text30        ;DataClassification=ToBeClassified }
+    { 2   ;   ;Description         ;Text30        ;DataClassification=ToBeClassified }
+    { 3   ;   ;Admisson Fee        ;Decimal       ;DataClassification=ToBeClassified }
+    { 4   ;   ;Registration Fee    ;Decimal       ;DataClassification=ToBeClassified }
+    { 5   ;   ;Transportation Fee  ;Decimal       ;DataClassification=ToBeClassified }
+    { 6   ;   ;Quarter Fee         ;Option        ;DataClassification=ToBeClassified;
+                                                   OptionCaptionML=ENU=Q1,Q2,Q3,Q4;
+                                                   OptionString=Q1,Q2,Q3,Q4 }
+    { 7   ;   ;Total Fee           ;Decimal       ;TableRelation=Stu_fee_structure;
+                                                   DataClassification=ToBeClassified }
+    { 8   ;   ;sortorder           ;Decimal       ;DataClassification=ToBeClassified }
+  }
+  KEYS
+  {
+    {    ;Class                                   ;Clustered=Yes }
+  }
+  FIELDGROUPS
+  {
+    { 1   ;Dropdown            ;Class,Description,Admisson Fee,Registration Fee,Transportation Fee,Quarter Fee,Total Fee }
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+

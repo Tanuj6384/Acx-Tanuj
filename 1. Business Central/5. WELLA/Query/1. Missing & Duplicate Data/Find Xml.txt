@@ -1,0 +1,15 @@
+select * from ax.ACXREQUESTRESPONSELOG where requestby='TRN024' 
+and cast(REQUESTTIME as date)='24-feb-24' and REQUESTTYPE like '%Post%'
+order by autoid desc
+
+
+
+select * from ax.acxtrainingdetails where trainercode='TRN024' and trainingdate='24-feb-24'
+
+select * from ax.ACXTRAININGDETAILSSTYLISTWISE where CREATEDBY='TRN024' and trainingdate='24-feb-24'
+
+
+--Delete from ax.acxtrainingdetails where trainercode='TRN024' and trainingdate='24-feb-24'
+--and TRNAPPID='TRN11720230421234653594000'
+--Delete from ax.ACXTRAININGDETAILSSTYLISTWISE where CREATEDBY='TRN024' and trainingdate='24-feb-24'
+--and TRNAPPID='TRN11720230421234653594000'

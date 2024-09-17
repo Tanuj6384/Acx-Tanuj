@@ -1,0 +1,33 @@
+1. Select WELLADMPROD (Database).
+2. Click On Table => Select Filter 
+3. Click On Filter (In Header) Copy TableName is { ACXTRAINERHIERARCHY }
+4. Paste Table { ACXTRAINERHIERARCHY } In Value Column In First Rows
+			(Create automatic ax.ACXTRAINERHIERARCHY Table)   
+5. Click right on ax.ACXTRAINERHIERARCHY 
+				(Select Top 1000 Rows)
+			(add query for  RECID desc)
+
+/****** Script for SelectTopNRows command from SSMS  ******/
+	SELECT TOP 1000 [DATAAREAID]
+      ,[RECID]
+      ,[USERCODE]
+      ,[TRAINERCODE]
+      ,[MODIFIEDDATETIME]
+      ,[CREATEDDATETIME]
+      ,[ROLECODE]
+      ,[CREATEDBY]
+  FROM [WELLADMSPROD].[ax].[ACXTRAINERHIERARCHY]
+  order by RECID desc
+}
+/* Mind it TOP RECID then After Create next RECID No. */
+
+6. Again Click right on ax.ACXTRAINERHIERARCHY 
+				(Select Edit Top 200 Rows)
+				
+7. Copy Same All field but
+				TrainerCode ==> TRN00
+				USERCODE ==> Login
+				
+				Date ==> Today Date
+				
+	

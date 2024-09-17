@@ -1,0 +1,221 @@
+OBJECT Report 60400 User registratio Rep Tanuj
+{
+  OBJECT-PROPERTIES
+  {
+    Date=05/06/23;
+    Time=11:53:04 AM;
+    Modified=Yes;
+    Version List=;
+  }
+  PROPERTIES
+  {
+  }
+  DATASET
+  {
+    { 1102152000;;DataItem;                  ;
+               DataItemTable=Table60200;
+               OnAfterGetRecord=BEGIN
+                                  BEGIN
+                                                  RecStudent.RESET();
+                                                  RecStudent.SETRANGE(Admission_No, Admission_No);
+                                                  IF RecStudent.FINDFIRST THEN BEGIN
+                                                      IF RecStudent.Class <> '' THEN BEGIN
+                                                          RecFeeStr.RESET();
+                                                          RecFeeStr.SETRANGE(Class, RecStudent.Class);
+                                                          IF RecFeeStr.FINDFIRST THEN BEGIN
+                                                              RecFeeStr2.RESET();
+                                                              RecFeeStr2.SETRANGE(Class, FltrClass);
+                                                              IF RecFeeStr2.FINDFIRST THEN BEGIN
+                                                                  IF NOT ((RecFeeStr2.sortorder - RecFeeStr.sortorder = 0) OR (RecFeeStr2.sortorder - RecFeeStr.sortorder = 1)) THEN
+                                                                      ERROR('Please select correct Class for Registration.')
+                                                              END;
+                                                          END;
+                                                      END;
+                                                  END;
+
+                                                  FOR int := 1 TO 4 DO BEGIN
+                                                      SLEntry.RESET();  //SLEntry.Init();
+                                                      IF SLEntry.FINDLAST THEN
+                                                          SLEntry."Entry No." := SLEntry."Entry No." + 1
+                                                      ELSE
+                                                          SLEntry."Entry No." := 1;
+                                                      // SLEntry."Issue Date" := Today;
+                                                      SLEntry."Admission No." := Admission_No;
+                                                      SLEntry.Open := TRUE;
+                                                      SLEntry."Student Name" := Name;
+                                                      //SLEntry."Fee Type" := SLEntry."Fee Type"::"Quarter Fee";
+                                                      RecFeeStr.RESET();
+                                                      RecFeeStr.SETRANGE(Class, FltrClass);
+                                                      IF RecFeeStr.FINDFIRST THEN BEGIN
+                                                          SLEntry.Class := RecFeeStr.Class;
+                                                          IF NewAdmn THEN BEGIN
+                                                              IF "Student DataRecord tbale".Transportation THEN BEGIN
+                                                                  SLEntry.Amount := RecFeeStr."Admisson Fee" + RecFeeStr."Registration Fee" + RecFeeStr."Transportation Fee" + RecFeeStr."Quarter Fee";
+                                                                  SLEntry."Remaning  Amount" := SLEntry.Amount;
+                                                              END
+                                                              ELSE BEGIN
+                                                                  SLEntry.Amount := RecFeeStr."Admisson Fee" + RecFeeStr."Registration Fee" + RecFeeStr."Quarter Fee";
+                                                                  SLEntry."Remaning  Amount" := SLEntry.Amount;//SLEntry."Remaning  Amount" := RecFeeStr."Admisson Fee" + RecFeeStr."Registration Fee" + RecFeeStr."Quarter Fee" ;
+                                                              END;
+                                                          END
+                                                          ELSE BEGIN
+                                                              IF "Student DataRecord tbale".Transportation THEN BEGIN
+                                                                  SLEntry.Amount := RecFeeStr."Registration Fee" + RecFeeStr."Transportation Fee" + RecFeeStr."Quarter Fee";
+                                                                  SLEntry."Remaning  Amount" := SLEntry.Amount;// SLEntry."Remaning  Amount" := RecFeeStr."Registration Fee" + RecFeeStr."Transportation Fee" + RecFeeStr."Quarter Fee";
+                                                              END
+                                                              ELSE BEGIN
+                                                                  SLEntry.Amount := RecFeeStr."Quarter Fee" + RecFeeStr."Registration Fee";
+                                                                  SLEntry."Remaning  Amount" := SLEntry.Amount; //SLEntry."Remaning  Amount" := RecFeeStr."Quarter Fee" + RecFeeStr."Registration Fee";
+                                                              END;
+                                                          END;
+                                                          Class := RecFeeStr.Class;
+                                                          MODIFY();
+                                                      END;
+                                                      // To insert Session, Quarter, Period
+
+                                                      intYear := DATE2DMY(TODAY, 3);
+                                                      SLEntry.Session := FORMAT(intYear) + '-' + FORMAT(intYear + 1);
+
+                                                      IF int = 1 THEN BEGIN
+                                                          SLEntry.Quarter := SLEntry.Quarter::Q1;
+                                                          SLEntry.Period := SLEntry.Period::"Apr-jun";
+                                                          TxtDate := FORMAT('04-20') + '-' + FORMAT(intYear);
+                                                          EVALUATE(SLEntry."Due Date", TxtDate);
+                                                      END ELSE
+                                                          IF int = 2 THEN BEGIN
+                                                              SLEntry.Quarter := SLEntry.Quarter::Q2;
+                                                              SLEntry.Period := SLEntry.Period::"Jul-Sep";
+                                                              TxtDate := FORMAT('07-20') + '-' + FORMAT(intYear);
+                                                              EVALUATE(SLEntry."Due Date", TxtDate);
+                                                          END ELSE
+                                                              IF int = 3 THEN BEGIN
+                                                                  SLEntry.Quarter := SLEntry.Quarter::Q3;
+                                                                  SLEntry.Period := SLEntry.Period::"Oct-Dec";
+                                                                  TxtDate := FORMAT('10-20') + '-' + FORMAT(intYear);
+                                                                  EVALUATE(SLEntry."Due Date", TxtDate);
+                                                              END ELSE BEGIN
+                                                                  SLEntry.Quarter := SLEntry.Quarter::Q4;
+                                                                  SLEntry.Period := SLEntry.Period::"Jan-Mar";
+                                                                  TxtDate := FORMAT('01-20') + '-' + FORMAT(intYear + 1);
+                                                                  EVALUATE(SLEntry."Due Date", TxtDate);
+                                                              END;
+                                                      SLEntry.INSERT();
+
+                                                  END;
+                                                  MESSAGE('Student %1 Registered for the Session.', "Student DataRecord tbale".Admission_No);
+
+                                              END;
+                                END;
+                                 }
+
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+      { 1102152000;;Container;
+                  Name=General;
+                  ContainerType=ContentArea }
+
+      { 1102152001;1;Field  ;
+                  Name=FltrClass;
+                  SourceExpr=FltrClass;
+                  TableRelation="Student Fee Structure".Class }
+
+      { 1102152002;1;Field  ;
+                  Name=NewAdmn;
+                  SourceExpr=NewAdmn }
+
+    }
+  }
+  LABELS
+  {
+  }
+  CODE
+  {
+    VAR
+      FltrClass@1102152000 : Code[10];
+      NewAdmn@1102152001 : Boolean;
+      SLEntry@1102152002 : Record 60201;
+      int@1102152003 : Integer;
+      RecFeeStr@1102152004 : Record 60203;
+      RecFeeStr2@1102152005 : Record 60203;
+      RecStudent@1102152006 : Record 60200;
+      intMonth@1102152007 : Integer;
+      intYear@1102152008 : Integer;
+      TxtDate@1102152009 : Text;
+
+    BEGIN
+    END.
+  }
+  RDLDATA
+  {
+    <?xml version="1.0" encoding="utf-8"?>
+<Report xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner" xmlns:cl="http://schemas.microsoft.com/sqlserver/reporting/2010/01/componentdefinition" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2010/01/reportdefinition">
+  <DataSources>
+    <DataSource Name="DataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString />
+      </ConnectionProperties>
+    </DataSource>
+  </DataSources>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <Height>2in</Height>
+        <Style />
+      </Body>
+      <Width>6.5in</Width>
+      <Page>
+        <Style />
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <Code>Public Function BlankZero(ByVal Value As Decimal)
+    if Value = 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankPos(ByVal Value As Decimal)
+    if Value &gt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankZeroAndPos(ByVal Value As Decimal)
+    if Value &gt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNeg(ByVal Value As Decimal)
+    if Value &lt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNegAndZero(ByVal Value As Decimal)
+    if Value &lt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+</Code>
+  <Language>=User!Language</Language>
+  <ConsumeContainerWhitespace>true</ConsumeContainerWhitespace>
+  <rd:ReportID>0eeb6585-38ae-40f1-885b-8d50088d51b4</rd:ReportID>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+</Report>
+    END_OF_RDLDATA
+  }
+}
+

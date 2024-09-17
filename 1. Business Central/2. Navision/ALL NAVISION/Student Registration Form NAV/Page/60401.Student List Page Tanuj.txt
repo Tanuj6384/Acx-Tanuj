@@ -1,0 +1,74 @@
+OBJECT Page 60401 Student List Page Tanuj
+{
+  OBJECT-PROPERTIES
+  {
+    Date=05/04/23;
+    Time=[ 8:18:17 PM];
+    Modified=Yes;
+    Version List=;
+  }
+  PROPERTIES
+  {
+    SourceTable=Table60200;
+    PageType=List;
+  }
+  CONTROLS
+  {
+    { 1102152000;0;Container;
+                ContainerType=ContentArea }
+
+    { 1102152001;1;Group  ;
+                Name=Group;
+                GroupType=Repeater }
+
+    { 1102152002;2;Field  ;
+                SourceExpr=Admission_No }
+
+    { 1102152003;2;Field  ;
+                SourceExpr=Name }
+
+    { 1102152004;2;Field  ;
+                SourceExpr="Parent Name" }
+
+    { 1102152005;2;Field  ;
+                SourceExpr=DOB }
+
+    { 1102152006;2;Field  ;
+                SourceExpr=Address }
+
+    { 1102152007;2;Field  ;
+                SourceExpr="Address 2" }
+
+    { 1102152008;2;Field  ;
+                SourceExpr="Post Code" }
+
+    { 1102152009;2;Field  ;
+                SourceExpr=City }
+
+    { 1102152010;2;Field  ;
+                SourceExpr="Mobile No." }
+
+    { 1102152011;2;Field  ;
+                SourceExpr=Class }
+
+    { 1102152012;2;Field  ;
+                SourceExpr=Transportation }
+
+    { 1102152013;2;Field  ;
+                SourceExpr=Balance }
+
+    { 1102152014;2;Field  ;
+                SourceExpr=Status }
+
+    { 1102152015;2;Field  ;
+                SourceExpr="No._Series" }
+
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+

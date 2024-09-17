@@ -1,0 +1,81 @@
+OBJECT Page 60403 Student Ledger Entry Page Tanu
+{
+  OBJECT-PROPERTIES
+  {
+    Date=05/05/23;
+    Time=11:56:25 PM;
+    Modified=Yes;
+    Version List=;
+  }
+  PROPERTIES
+  {
+    SourceTable=Table60201;
+    PageType=List;
+  }
+  CONTROLS
+  {
+    { 1102152000;0;Container;
+                ContainerType=ContentArea }
+
+    { 1102152001;1;Group  ;
+                Name=Group;
+                GroupType=Repeater }
+
+    { 1102152002;2;Field  ;
+                SourceExpr="Entry No." }
+
+    { 1102152003;2;Field  ;
+                SourceExpr="Admission No." }
+
+    { 1102152004;2;Field  ;
+                SourceExpr="Student Name" }
+
+    { 1102152005;2;Field  ;
+                SourceExpr=Class }
+
+    { 1102152006;2;Field  ;
+                SourceExpr=Amount }
+
+    { 1102152007;2;Field  ;
+                SourceExpr="Payment Amount" }
+
+    { 1102152008;2;Field  ;
+                SourceExpr="Remaning  Amount" }
+
+    { 1102152009;2;Field  ;
+                SourceExpr=Quarter }
+
+    { 1102152010;2;Field  ;
+                SourceExpr="Quarter Fee" }
+
+    { 1102152011;2;Field  ;
+                SourceExpr="Financial Year" }
+
+    { 1102152012;2;Field  ;
+                SourceExpr="Fee Type" }
+
+    { 1102152013;2;Field  ;
+                SourceExpr=Period }
+
+    { 1102152014;2;Field  ;
+                SourceExpr="Due Date" }
+
+    { 1102152015;2;Field  ;
+                SourceExpr=Open;
+                TableRelation="Student Ledger Entry Tanuj" }
+
+    { 1102152016;2;Field  ;
+                SourceExpr=Session }
+
+    { 1102152017;2;Field  ;
+                SourceExpr="Payment Method Code" }
+
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+

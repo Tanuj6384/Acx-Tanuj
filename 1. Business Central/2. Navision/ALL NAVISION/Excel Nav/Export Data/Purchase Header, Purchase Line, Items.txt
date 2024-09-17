@@ -1,0 +1,220 @@
+OBJECT Report 13725 TCSEXREP
+{
+  OBJECT-PROPERTIES
+  {
+    Date=16-02-13;
+    Time=18:10:58;
+    Modified=Yes;
+    Version List=;
+  }
+  PROPERTIES
+  {
+    OnInitReport=BEGIN
+                   PrintToExcel :=TRUE;
+                 END;
+
+    OnPreReport=BEGIN
+                  MakeExcelInfo;
+                END;
+
+    OnPostReport=BEGIN
+                   ExcelBuff.CreateBookAndOpenExcel('','Purchase Header','item report','Tanuj',USERID);
+                 END;
+
+  }
+  DATASET
+  {
+    { 1000000000;;DataItem;                  ;
+               DataItemTable=Table38;
+               OnAfterGetRecord=BEGIN
+                                  "Vendor No.":= '';
+                                  "Base Unit Of Measure" := '';
+                                  Item.RESET;
+                                  Item.SETRANGE("No.",Item."No.");
+                                  IF Item.FINDFIRST THEN BEGIN
+                                   "Vendor No."  := Item."Vendor No.";
+                                    "Base Unit Of Measure" := Item."Base Unit of Measure";
+                                  END;
+
+
+
+                                  MakeExcelBody;
+                                END;
+
+               Temporary=No }
+
+    { 1000000001;1;DataItem;                 ;
+               DataItemTable=Table39;
+               DataItemLink=Document No.=FIELD(No.) }
+
+    { 1000000002;2;DataItem;                 ;
+               DataItemTable=Table27;
+               DataItemLink=No.=FIELD(No.) }
+
+  }
+  REQUESTPAGE
+  {
+    PROPERTIES
+    {
+    }
+    CONTROLS
+    {
+    }
+  }
+  LABELS
+  {
+  }
+  CODE
+  {
+    VAR
+      ExcelBuff@1000000000 : TEMPORARY Record 370;
+      PrintToExcel@1000000001 : Boolean;
+      Description@1000000003 : Text;
+      "Base Unit Of Measure"@1000000004 : Code[10];
+      Open@1000000005 : Boolean;
+      "Vendor No."@1000000002 : Text[30];
+
+    LOCAL PROCEDURE MakeExcelInfo@1000000000();
+    BEGIN
+
+            ExcelBuff.SetUseInfoSheet;
+            ExcelBuff.AddColumn(COMPANYNAME,FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+            ExcelBuff.NewRow;
+            ExcelBuff.AddColumn(USERID,FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+            ExcelBuff.NewRow;
+            ExcelBuff.AddColumn(TODAY,FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+            ExcelBuff.NewRow;
+            ExcelBuff.ClearNewRow;
+
+            MakeExcelHeader;
+    END;
+
+    LOCAL PROCEDURE MakeExcelHeader@1000000001();
+    BEGIN
+      ExcelBuff.DELETEALL;
+
+      // Purchase Header
+            ExcelBuff.NewRow;
+            ExcelBuff.AddColumn('No.',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+            ExcelBuff.AddColumn('Buy-from Vendor No.',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+            ExcelBuff.AddColumn('Buy-from Vendor Name',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+            ExcelBuff.AddColumn('Status',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+            ExcelBuff.AddColumn('Order Date',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+
+      // Purchase Line
+           ExcelBuff.AddColumn('Type',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+           ExcelBuff.AddColumn('No.',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+           ExcelBuff.AddColumn('Description',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+           ExcelBuff.AddColumn('Location Code',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+           ExcelBuff.AddColumn('Quantity',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+
+      // Item Master
+           ExcelBuff.AddColumn('No.',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Number);
+           ExcelBuff.AddColumn('Description',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+           ExcelBuff.AddColumn('Base Unit Of Measure',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+           ExcelBuff.AddColumn('Unit Cost',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Number);
+           ExcelBuff.AddColumn('Unit Price',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Number);
+           ExcelBuff.AddColumn('Vendor No.',FALSE,'',TRUE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+    END;
+
+    LOCAL PROCEDURE MakeExcelBody@1000000002();
+    BEGIN
+
+      // Purchase Header
+           ExcelBuff.NewRow;
+           ExcelBuff.AddColumn("Purchase Header"."No.",FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+           ExcelBuff.AddColumn("Purchase Header"."Buy-from Vendor No.",FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+           ExcelBuff.AddColumn("Purchase Header"."Buy-from Vendor Name",FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Number);
+           ExcelBuff.AddColumn("Purchase Header".Status,FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+           ExcelBuff.AddColumn("Purchase Header"."Order Date",FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Date);
+
+      // Purchase Line
+          ExcelBuff.AddColumn("Purchase Line".Type,FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+          ExcelBuff.AddColumn("Purchase Line"."No.",FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+          ExcelBuff.AddColumn("Purchase Line".Description,FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+          ExcelBuff.AddColumn("Purchase Line"."Location Code",FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+          ExcelBuff.AddColumn("Purchase Line".Quantity,FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+
+      // Item Master
+          ExcelBuff.AddColumn(Item."No.",FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Number);
+          ExcelBuff.AddColumn(Item.Description,FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+          ExcelBuff.AddColumn(Item."Base Unit of Measure",FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Text);
+          ExcelBuff.AddColumn(Item."Unit Cost",FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Number);
+          ExcelBuff.AddColumn(Item."Unit Price",FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Number);
+          ExcelBuff.AddColumn(Item."Vendor No.",FALSE,'',FALSE,FALSE,FALSE,'',ExcelBuff."Cell Type"::Number);
+
+
+
+    END;
+
+    BEGIN
+    END.
+  }
+  RDLDATA
+  {
+    <?xml version="1.0" encoding="utf-8"?>
+<Report xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner" xmlns:cl="http://schemas.microsoft.com/sqlserver/reporting/2010/01/componentdefinition" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2010/01/reportdefinition">
+  <DataSources>
+    <DataSource Name="DataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString />
+      </ConnectionProperties>
+    </DataSource>
+  </DataSources>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <Height>2in</Height>
+        <Style />
+      </Body>
+      <Width>6.5in</Width>
+      <Page>
+        <Style />
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <Code>Public Function BlankZero(ByVal Value As Decimal)
+    if Value = 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankPos(ByVal Value As Decimal)
+    if Value &gt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankZeroAndPos(ByVal Value As Decimal)
+    if Value &gt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNeg(ByVal Value As Decimal)
+    if Value &lt; 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+
+Public Function BlankNegAndZero(ByVal Value As Decimal)
+    if Value &lt;= 0 then
+        Return ""
+    end if
+    Return Value
+End Function
+</Code>
+  <Language>=User!Language</Language>
+  <ConsumeContainerWhitespace>true</ConsumeContainerWhitespace>
+  <rd:ReportID>0eeb6585-38ae-40f1-885b-8d50088d51b4</rd:ReportID>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+</Report>
+    END_OF_RDLDATA
+  }
+}
+
