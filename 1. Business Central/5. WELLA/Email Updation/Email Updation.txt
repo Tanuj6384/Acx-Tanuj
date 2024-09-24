@@ -1,3 +1,13 @@
+
+Table is  ACXAUTOMAILCONFIGURATION
+
+
+
+
+
+
+
+
 gopaghosh.mazumdar@lobostaffing.in,Subhash.sarkania@wella.com
 
 
