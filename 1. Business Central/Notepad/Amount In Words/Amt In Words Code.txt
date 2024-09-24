@@ -1,0 +1,16 @@
+ column(AmtInWord; NumTxt[1] + NumTxt[2])
+            {
+            }
+  
+---------------------------------------------------
+
+trigger OnAfterGetRecord()
+            begin
+                CheckRep.InitTextVariable;
+                CheckRep.FormatNoText(NumTxt, Amount, '');
+            end;
+------------------------------------------------------
+
+var
+        NumTxt: array[2] of Text[250];
+        CheckRep: Report check;
