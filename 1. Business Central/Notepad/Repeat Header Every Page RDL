@@ -1,4 +1,4 @@
-Click on the down arrow on the far right of this panel.(Bottom)
+Click on the down arrow on the far right of this panel.(Bottom) [Grouping]
 Select Advanced Mode. This will show extra settings for static rows and columns.
 select static in (First Right side) 
 => open Properties => RepeatOnNewPage =True 
