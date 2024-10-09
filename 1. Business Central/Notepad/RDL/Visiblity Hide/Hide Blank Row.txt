@@ -1,0 +1,4 @@
+=IIf(Fields!PostingDate.Value = "", True, False)
+
+
+=IIf(Fields!PostingDate.Value = "" And Fields!DocumentDate.Value = "", True, False)
