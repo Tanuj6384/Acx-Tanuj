@@ -8,16 +8,16 @@
 
     BEGIN
         if Position  0 then begin
-             Get the filter from the Posting Date field of the Sales Header
+             //Get the filter from the Posting Date field of the Sales Header
             DateRange = Sales Header.GetFilter(Posting Date);
 
-             Find the position of the .. separator between start and end dates
+             //Find the position of the .. separator between start and end dates
             Position = StrPos(DateRange, '..');
 
-             Extract the start date, which is before the .. separator
+             //Extract the start date, which is before the .. separator
             StartDate = CopyStr(DateRange, 1, Position - 1);
 
-             Extract the end date, which is after the .. separator
+             //Extract the end date, which is after the .. separator
             EndDate = CopyStr(DateRange, Position + 2, StrLen(DateRange) - strlen - 1);
             dated = 'FROM' + ' ' + StartDate + ' ' + 'TO' + ' ' + EndDate;
         end;
