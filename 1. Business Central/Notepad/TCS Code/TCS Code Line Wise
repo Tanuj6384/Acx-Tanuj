@@ -1,0 +1,24 @@
+-----------------------------------------------------------------------------------------------
+                    TCSAmount := 0;
+                    TCSRate := 0;
+                    recSalesinline.Reset();
+                    recSalesinline.SetRange("Document No.", "Sales Invoice Line"."Document No.");
+                    recSalesinline.SetRange("Line No.", "Sales Invoice Line"."Line No.");
+                    if recSalesinline.FindFirst() then begin
+                        TaxTransactionValue.Reset();
+                        TaxTransactionValue.SetRange("Tax Record ID", recSalesinline.RecordId);
+                        TaxTransactionValue.SetRange("Tax Type", 'TCS');
+                        TaxTransactionValue.SetRange("Value Type", TaxTransactionValue."Value Type"::COMPONENT);
+                        TaxTransactionValue.SetFilter(Percent, '<>%1', 0);
+                        if TaxTransactionValue.FindSet() then
+                            TCSAmount := TaxTransactionValue.Amount;
+                        TotalTCS += TCSAmount;//Acx-Tanuj
+                        TCSRate := TaxTransactionValue.Percent;
+                    end;
+------------------------------------------------------------------------------------------
+        VAR
+        TaxTransactionValue: Record "Tax Transaction Value";
+        recSalesinline: Record "Sales Invoice Line";
+        TCSAmount:Decimal;
+        TCSRate :Decimal;
+
