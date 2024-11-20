@@ -1,0 +1,28 @@
+STEP 1: Create a TextBOX in Body
+        GO TO TextBox Propeties & select Visibilty.
+        PASTE THIS EXP (=Code.SetData(Cstr(Fields!txtCopy.Value) + Chr(177).
+=====> Change Your field Like (Fields!txtCopy.Value)
+, 1))
+
+STEP 2:  GO TO Report Properties.
+        Open Code & paste this
+(
+Shared Data1 as Object
+Public Function GetData(Num as Integer, Group as integer) as Object
+if Group = 1 then
+   Return Cstr(Choose(Num, Split(Cstr(Data1),Chr(177))))
+End If
+End Function
+
+Public Function SetData(NewData as Object,Group as integer)
+  If Group = 1 and NewData > "" Then
+      Data1 = NewData
+  End If
+  Return True
+End Function
+)
+
+
+STEP 3 : Go To Your TextBox & apste It
+          (  =code.getdata(1,1)    )
+        
