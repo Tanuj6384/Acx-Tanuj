@@ -1,8 +1,11 @@
 STEP 1: Create a TextBOX in Body
         GO TO TextBox Propeties & select Visibilty.
-        PASTE THIS EXP (=Code.SetData(Cstr(Fields!txtCopy.Value) + Chr(177).
-=====> Change Your field Like (Fields!txtCopy.Value)
-, 1))
+        PASTE THIS EXP 
+{
+(=Code.SetData(Cstr(Fields!txtCopy.Value) + Chr(177), 1)).
+
+=====> Change Your field Like (Fields!txtCopy.Value)  
+
 
 STEP 2:  GO TO Report Properties.
         Open Code & paste this
