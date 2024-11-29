@@ -1,0 +1,8 @@
+=Mid(Format(Fields!CurrentDate.Value, "ddMMyyyy"), 1, 1) & " " &
+Mid(Format(Fields!CurrentDate.Value, "ddMMyyyy"), 2, 1) & " " &
+Mid(Format(Fields!CurrentDate.Value, "ddMMyyyy"), 3, 1) & " " &
+Mid(Format(Fields!CurrentDate.Value, "ddMMyyyy"), 4, 1) & " " &
+Mid(Format(Fields!CurrentDate.Value, "ddMMyyyy"), 5, 1) & " " &
+Mid(Format(Fields!CurrentDate.Value, "ddMMyyyy"), 6, 1) & " " &
+Mid(Format(Fields!CurrentDate.Value, "ddMMyyyy"), 7, 1) & " " &
+Mid(Format(Fields!CurrentDate.Value, "ddMMyyyy"), 8, 1)
