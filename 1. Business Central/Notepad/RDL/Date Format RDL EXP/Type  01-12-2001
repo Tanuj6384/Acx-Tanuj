@@ -1,0 +1,1 @@
+=Format(First(Fields!Document_Date.Value, "DataSet_Result"), "dd-MM-yyyy")
