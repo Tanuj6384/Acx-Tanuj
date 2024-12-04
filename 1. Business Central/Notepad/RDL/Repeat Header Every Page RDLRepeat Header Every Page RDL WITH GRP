@@ -1,0 +1,19 @@
+Step 1: 
+     Go to Tablix Properties has the Repeat header columns on each page ticked.
+
+Step 2:
+      Go to Grouping in bottom.
+      Right Side Column Goup Click Arrow And Select (Advanced Mode).
+
+Step 3: Go to Right Side In Grouping in Rows Group
+        Click 2nd Static 
+        Open properties  Showing This 
+                          { Select this Last 2 only 
+                            FixedData=False
+                            KeepTogether=False
+                            KeepWithGroup = After
+                            RepeatOnNewPage=True
+                            }
+website link:
+https://www.ptr.co.uk/blog/ssrs-repeat-page-headers-every-page
+                                      
