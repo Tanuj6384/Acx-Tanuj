@@ -1,0 +1,83 @@
+report 50058 BooleanTrue1Tanuj
+{
+    UsageCategory = ReportsAndAnalysis;
+    ApplicationArea = All;
+    ProcessingOnly = True;
+    UseRequestPage = True;
+    Caption = 'Boolean true Tanuj';
+    Permissions = tabledata "Sales Invoice Header" = rmi,
+        tabledata "Sales Cr.Memo Header" = rmi,
+        tabledata "Sales Invoice Line" = rmi;
+
+
+
+    dataset
+    {
+        dataitem("Sales Invoice Header"; "Sales Invoice Header")
+        {
+            // column(Cancelled_invoice; "Cancelled invoice")
+            // {
+
+            // }
+            trigger OnAfterGetRecord()
+            var
+            begin
+                if "Sales Invoice Header"."Cancelled invoice" = true then begin
+                    saleInvLin.Reset();
+                    saleInvLin.SetRange("Document No.", "Sales Invoice Header"."No.");
+                    saleInvLin.SetRange(Type, Type::Item);
+                    if saleInvLin.FindSet() then begin
+                        repeat
+                            saleInvLin.Validate("Cancelled invoice", true);
+                            saleInvLin.Modify();
+                        until saleInvLin.Next() = 0;
+                    end;
+                end;
+
+            end;
+        }
+
+    }
+
+    requestpage
+    {
+        AboutTitle = 'Teaching tip title';
+        AboutText = 'Teaching tip content';
+        layout
+        {
+            area(Content)
+            {
+                group(GroupName)
+                {
+                    // field(Name; SourceExpression)
+                    // {
+                    //     ApplicationArea = All;
+
+                    // }
+                }
+            }
+        }
+
+        actions
+        {
+            area(processing)
+            {
+                action(LayoutName)
+                {
+                    ApplicationArea = All;
+
+                }
+            }
+        }
+    }
+
+
+
+    var
+        myInt: Integer;
+        saleInv: Record "Sales Invoice Header";
+        saleInvLin: Record "Sales Invoice Line";
+
+
+        recNo: text;
+}
