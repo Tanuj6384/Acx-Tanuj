@@ -1,0 +1,14 @@
+  AcutalMaturityAmount := 0;
+  recBankAccountLedgEntry.Reset();
+  recBankAccountLedgEntry.SetRange("Bank Account No.", "Bank Account"."No.");
+
+// Ensure the entries are sorted in ascending order (oldest first)
+  recBankAccountLedgEntry.SetAscending("Entry No.", true);
+       if recBankAccountLedgEntry.FindSet() then begin
+          // Skip the first record
+           if recBankAccountLedgEntry.Next() <> 0 then begin
+                repeat
+                  AcutalMaturityAmount += recBankAccountLedgEntry."Debit Amount (LCY)";
+                until recBankAccountLedgEntry.Next() = 0;
+            end;
+        end;
