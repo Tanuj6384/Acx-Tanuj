@@ -1,0 +1,40 @@
+1.) In Report
+<<<<<<<<<<< Crete Procedure >>>>>>>>>>>>>>>>>>>>>>>>
+
+ procedure GetFullName(userID: Guid): Text
+    var
+        UserInfo: Record User;
+    begin
+        //UserInfo.Get(userID);
+        if UserInfo.Get(userID) then begin
+            exit(UserInfo."Full Name");
+        end
+        else begin
+            exit('');
+        end;
+    end;
+<<<<<<<<<<< Crete Column >>>>>>>>>>>>>>>>>>>>>>>>
+  column(Creted_user_Name; GetFullName(SystemCreatedBy)) { }
+  column(Modified_user_Name; GetFullName(SystemModifiedBy)) { }
+
+--------------------------------------------------------------------------------------------------
+2.) In Page
+  <<<<<<<<<<< Crete Procedure >>>>>>>>>>>>>>>>>>>>>>>>
+   
+procedureGetNameFromSystemID(SystemID: Guid): Code[ 50]
+var
+User: Record User;
+begin
+if User. Get(SystemID) then
+exit(User. "User Name");
+end;
+  <<<<<<<<<<< Crete Filed >>>>>>>>>>>>>>>>>>>>>>>>
+field("Created By"; GetNameFromSystemID(Rec.SystemCreatedBy))
+{
+ApplicationArea - All;
+}
+
+Fied("Modified By"; GetNameFromSystemID(Rec.SystemModifiedBy))
+{
+ApplicationArea - All;
+}
