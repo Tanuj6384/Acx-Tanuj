@@ -1,1 +1,11 @@
-hi
+column(ComopanyName; recComopanyInfo.Name) { }
+column(ComopanyAddress; recComopanyInfo.Address + '' + recComopanyInfo."Address 2" + '' + recComopanyInfo.City + '' + recComopanyInfo."Post Code") { }
+
+-----------------------------------
+ Trigger OnAfterGetRecord()
+   Begin
+      recComopanyInfo.Get();
+  End
+----------------------------------------------
+Var
+recComopanyInfo: Record "Company Information";
