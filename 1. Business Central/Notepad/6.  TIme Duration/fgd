@@ -1,1 +1,11 @@
+var
+runTime: Decimal;
+RuntimeHours: Integer;
+RuntimeMinutes: Integer;
+NewRuntime: Duration;
 
+-----------------Decimal To --------------------- 
+runTime := "Capacity Ledger Entry"."Run Time"; //300  "Run Time" is Decimal  
+RuntimeHours := RunTime DIV 60; //5
+RuntimeMinutes := RunTime MOD 60; //
+NewRuntime := (RuntimeHours * 3600000) + (RuntimeMinutes * 60000);
