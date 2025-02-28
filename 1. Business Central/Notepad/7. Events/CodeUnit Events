@@ -18,18 +18,6 @@
     begin
         SalesShptLine.Box := SalesLine.Box;
     end;
-//...........................................sales Line To Sales shipment line...................................................................................
-
-######################################################################################################
-
-    //...........................................Sales Line to Warehouse Shipment Line...............................................................................
-    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Whse.-Create Source Document", 'OnPurchLine2ReceiptLineOnAfterInitNewLine', '', false, false)]
-    local procedure OnPurchLine2ReceiptLineOnAfterInitNewLine(var WhseReceiptLine: Record "Warehouse Receipt Line"; WhseReceiptHeader: Record "Warehouse Receipt Header"; PurchaseLine: Record Microsoft.Purchases.Document."Purchase Line"; var IsHandled: Boolean)
-    begin
-        WhseReceiptLine."Applicable For QC" := PurchaseLine."Applicable For QC";
-        WhseReceiptLine."QC Templete code" := PurchaseLine."QC Templete code";
-    end;
- //...........................................Sales Line to Warehouse Shipment Line...............................................................................
 
 ######################################################################################################
 
@@ -130,3 +118,21 @@
 //...........................................Warehouse Shipment Line to Posted Sales Shipment Line...............................................................
 
 ######################################################################################################
+
+
+
+
+
+
+######################################################################################################
+
+//...........................................Warehouse Receipt Line To Purchase Line...................................................................................
+
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Whse.-Create Source Document", 'OnPurchLine2ReceiptLineOnAfterInitNewLine', '', false, false)]
+    local procedure OnPurchLine2ReceiptLineOnAfterInitNewLine(var WhseReceiptLine: Record "Warehouse Receipt Line"; WhseReceiptHeader: Record "Warehouse Receipt Header"; PurchaseLine: Record Microsoft.Purchases.Document."Purchase Line"; var IsHandled: Boolean)
+    begin
+        WhseReceiptLine."Applicable For QC" := PurchaseLine."Applicable For QC";
+        WhseReceiptLine."QC Templete code" := PurchaseLine."QC Templete code";
+    end;
+ //...........................................Warehouse Receipt Line To Purchase Line...............................................................................
+
