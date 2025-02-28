@@ -22,6 +22,17 @@
 
 ######################################################################################################
 
+    //...........................................Sales Line to Warehouse Shipment Line...............................................................................
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Whse.-Create Source Document", 'OnPurchLine2ReceiptLineOnAfterInitNewLine', '', false, false)]
+    local procedure OnPurchLine2ReceiptLineOnAfterInitNewLine(var WhseReceiptLine: Record "Warehouse Receipt Line"; WhseReceiptHeader: Record "Warehouse Receipt Header"; PurchaseLine: Record Microsoft.Purchases.Document."Purchase Line"; var IsHandled: Boolean)
+    begin
+        WhseReceiptLine."Applicable For QC" := PurchaseLine."Applicable For QC";
+        WhseReceiptLine."QC Templete code" := PurchaseLine."QC Templete code";
+    end;
+ //...........................................Sales Line to Warehouse Shipment Line...............................................................................
+
+######################################################################################################
+
 //...........................................Sales Line to Warehouse Shipment Line...............................................................................
     [EventSubscriber(ObjectType::Codeunit, Codeunit::"Whse.-Create Source Document", OnAfterInitNewWhseShptLine, '', false, false)]
     local procedure "Whse.-Create Source Document_OnAfterInitNewWhseShptLine"(var WhseShptLine: Record "Warehouse Shipment Line"; WhseShptHeader: Record "Warehouse Shipment Header"; SalesLine: Record "Sales Line"; AssembleToOrder: Boolean)
@@ -60,5 +71,62 @@
         SalesInvLine.Box := SalesLine.Box;
     end;
 //...........................................Sales invoice line To Posted Sales Invoice Line......................................................................
+
+######################################################################################################
+
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// ------------------------WAREHOUSE-----------------------
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+######################################################################################################
+
+    //...........................................Warehouse Shipment Header to Posted Warehouse Shipment Header.......................................................
+
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Whse.-Post Shipment", 'OnBeforePostedWhseShptHeaderInsert', '', false, false)]
+    local procedure OnBeforePostedWhseShptHeaderInsert(var PostedWhseShipmentHeader: Record "Posted Whse. Shipment Header"; WarehouseShipmentHeader: Record "Warehouse Shipment Header")
+    begin
+        PostedWhseShipmentHeader."No. of (Boxes.)" := WarehouseShipmentHeader."No. of (Boxes.)";
+        PostedWhseShipmentHeader."No. of Boxes(Loose)" := WarehouseShipmentHeader."No. of Boxes(Loose)";
+        PostedWhseShipmentHeader."Total No. of Boxes" := WarehouseShipmentHeader."Total No. of Boxes";
+        PostedWhseShipmentHeader."Transporter name" := WarehouseShipmentHeader."Transporter name";
+        PostedWhseShipmentHeader."Transporter vehicle No." := WarehouseShipmentHeader."Transporter vehicle No.";
+        PostedWhseShipmentHeader."LR Date" := WarehouseShipmentHeader."LR Date";
+        PostedWhseShipmentHeader."LR No." := WarehouseShipmentHeader."LR No.";
+    end;
+//...........................................Warehouse Shipment Header to Posted Warehouse Shipment Header.......................................................
+
+######################################################################################################
+ //...........................................Warehouse Shipment Line to Posted Warehouse Shipment Line...........................................................
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Whse.-Post Shipment", 'OnAfterInitPostedShptLine', '', false, false)]
+    local procedure OnAfterInitPostedShptLine(var WhseShipmentLine: Record "Warehouse Shipment Line"; var PostedWhseShipmentLine: Record "Posted Whse. Shipment Line")
+    begin
+        PostedWhseShipmentLine."OEM Std. Packing" := WhseShipmentLine."OEM Std. Packing";
+        PostedWhseShipmentLine."Domestic Std. Packing" := WhseShipmentLine."Domestic Std. Packing";
+        PostedWhseShipmentLine."Export Std. Packing" := WhseShipmentLine."Export Std. Packing";
+        PostedWhseShipmentLine.QPB := WhseShipmentLine.QPB;
+        PostedWhseShipmentLine.Box := WhseShipmentLine.Box;
+        PostedWhseShipmentLine.Loose := WhseShipmentLine.Loose;
+    end;
+//...........................................Warehouse Shipment Line to Posted Warehouse Shipment Line............................................................
+
+######################################################################################################
+
+//...........................................Warehouse Shipment Header to Posted Sales Shipment Header...........................................................
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Sales-Post", OnBeforeSalesShptHeaderInsert, '', false, false)]
+    local procedure OnBeforeSalesShptHeaderInsert(var SalesShptHeader: Record "Sales Shipment Header"; SalesHeader: Record "Sales Header"; CommitIsSuppressed: Boolean; var IsHandled: Boolean; var TempWhseRcptHeader: Record "Warehouse Receipt Header" temporary; WhseReceive: Boolean; var TempWhseShptHeader: Record "Warehouse Shipment Header" temporary; WhseShip: Boolean; InvtPickPutaway: Boolean);
+    begin
+        SalesShptHeader."No. of (Boxes.)" := TempWhseShptHeader."No. of (Boxes.)";
+    end;
+//...........................................Warehouse Shipment Header to Posted Sales Shipment Header...........................................................
+
+######################################################################################################
+
+//...........................................Warehouse Shipment Line to Posted Sales Shipment Line...............................................................
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Sales-Post", 'OnCheckPostWhseShptLinesOnAfterWhseShptLinesFound', '', true, true)]
+    local procedure OnCheckPostWhseShptLinesOnAfterWhseShptLinesFound(var SalesShipmentLine: Record "Sales Shipment Line"; var SalesLine: Record "Sales Line"; var WhseShptLinesFound: Boolean; WarehouseShipmentHeader: Record "Warehouse Shipment Header"; WarehouseReceiptHeader: Record "Warehouse Receipt Header"; WhseShip: Boolean; WhseReceive: Boolean; var WarehouseShipmentLine: Record "Warehouse Shipment Line")
+    begin
+        SalesShipmentLine.Box := WarehouseShipmentLine.Box;
+    end;
+//...........................................Warehouse Shipment Line to Posted Sales Shipment Line...............................................................
 
 ######################################################################################################
