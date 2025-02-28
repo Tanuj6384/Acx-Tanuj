@@ -1,0 +1,34 @@
+
+    //.......................Purchase header...........................................
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Purch.-Get Receipt", 'OnBeforeTransferLineToPurchaseDoc', '', true, true)]
+    local procedure OnBeforeTransferLineToPurchaseDoc(var PurchaseHeader: Record "Purchase Header"; var PurchRcptHeader: Record "Purch. Rcpt. Header"; var PurchRcptLine: Record "Purch. Rcpt. Line"; var TransferLine: Boolean)
+    var
+        IsHandled: Boolean;
+    begin
+        // IsHandled:=true;
+        if PurchRcptHeader."Currency Code" <> PurchaseHeader."Currency Code" then begin
+            TransferLine := true;
+        end;
+    end;
+    //.......................Purchase header...........................................
+
+[EventSubscriber(ObjectType::Codeunit, Codeunit::"Reference Invoice No. Mgt.", 'OnBeforeCheckRefInvNoPurchaseHeader', '', false, false)]//Acx-TK
+    local procedure OnBeforeCheckRefInvNoPurchaseHeader(var PurchaseHeader: Record "Purchase Header"; var IsHandled: Boolean)
+    begin
+        IsHandled := true;
+    end;
+
+
+
+
+
+    //...........................................Sales Line for Multi Location.......................................................................................
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"GST Sales Validation", 'OnBeforeCheckHeaderLocation', '', false, false)]
+    local procedure OnBeforeCheckHeaderLocation(SalesLine: Record "Sales Line"; var IsHandled: Boolean)
+    begin
+        IsHandled := true;
+    end;
+
+    //...........................................Sales Line for Multi Location.......................................................................................
+
+
