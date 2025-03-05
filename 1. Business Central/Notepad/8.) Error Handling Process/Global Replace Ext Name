@@ -37,4 +37,26 @@ After
 :=Tableextension 60073 "customer cardExt" extends "Customer Card"
 
 ##########################################################################################
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Page Extension in Multiple Word Like ( "Customer Card" )
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+STEP 1 := Go To (CTRL + SHIFT + H)
+STEP 2 := Paste In Find
+------------------------------------------------------
+pageextension (\d+) pageextension\d+ extends "(.*?)"
+------------------------------------------------------
+STEP 3 := Paste In Replace
+------------------------------------------------------
+Pageextension $1 "\L$2Ext" extends "$2"
+PageeExtension $1 $2EXT extends $2
+------------------------------------------------------
+Before := 
+PageExtension 60073 Pageextension60073 extends "Customer Card"
+
+After :=
+Pageextension 60073 "customer cardExt" extends "Customer Card"
+
+##########################################################################################
 
