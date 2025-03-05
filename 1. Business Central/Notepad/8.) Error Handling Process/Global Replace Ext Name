@@ -1,1 +1,40 @@
-SDF
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Table Extension in Single Word Like (Customer)
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+STEP 1 := Go To (CTRL + SHIFT + H)
+STEP 2 := Paste In Find 
+------------------------------------------------------
+TableExtension (\d+) tableextension\d+ extends (\w+)\
+------------------------------------------------------
+STEP 3 := Paste In Replace
+------------------------------------------------------
+TableExtension $1 $2EXT extends $2
+------------------------------------------------------
+Before := 
+TableExtension 60073 tableextension60073 extends Customer
+
+After :=
+TableExtension 60073 CustomerEXT extends Customer
+
+##########################################################################################
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Table Extension in Multiple Word Like ( "Customer Card" )
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+STEP 1 := Go To (CTRL + SHIFT + H)
+STEP 2 := Paste In Find
+------------------------------------------------------
+tableextension (\d+) tableextension\d+ extends "(.*?)"
+------------------------------------------------------
+STEP 3 := Paste In Replace
+------------------------------------------------------
+Tableextension $1 "\L$2Ext" extends "$2"
+------------------------------------------------------
+Before := 
+TableExtension 60073 tableextension60073 extends "Customer Card"
+
+After 
+:=Tableextension 60073 "customer cardExt" extends "Customer Card"
+
+##########################################################################################
+
