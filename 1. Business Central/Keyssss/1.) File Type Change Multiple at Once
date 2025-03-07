@@ -1,0 +1,9 @@
+Step 1 : Open Folder
+Shift + Right Click on an empty space → Select "Open PowerShell window here" or "Open in Terminal".
+
+Step 2 :
+Get-ChildItem *.rdlc | Rename-Item -NewName { $_.Name -replace '\.rdlc$', '.rdl' }
+
+
+Final Solution:
+RDLC to rdl converted.
