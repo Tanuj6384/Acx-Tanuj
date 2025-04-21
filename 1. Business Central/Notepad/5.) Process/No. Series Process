@@ -1,0 +1,41 @@
+
+Step 1: Go to No.Series page
+		Add new 
+		fill Code =T-ADM and Descroption (Starting No=ADM001)
+
+Step 2:  Create TableExtension And PageExtesnion
+		Field (No Series Add) & table releation =No.series
+		
+		
+Step 3: Go to sales & payable Setup
+		Find filed(No Series Add) in No series
+		Select Yours no series.
+
+Step 4 : Go to vs Code
+		Go to your Table where your filed (Addmission No)
+		
+		
+		trigger OnInsert()
+    var
+        SalesSetup: Record "Sales & Receivables Setup";
+        NoSeriesMgt: Codeunit NoSeriesManagement;
+        // AddmissionNo: Code[20];
+    begin
+        SalesSetup.Get();
+        "Addmission No." := NoSeriesMgt.GetNextNo(SalesSetup."No Series Add", 0D, true);
+        // Validate("Addmission No.", AddmissionNo);
+    end;
+
+---------------------------------------------------------------------------------------------
+NEW
+    trigger OnInsert()
+    var
+        recJwelleryParameter: Record "Jewellery Parameter";
+        NoSeriesMgmt: Codeunit "No. Series - Batch";
+    begin
+        if recJwelleryParameter.Get() then
+        begin
+            Validate("Tag Spit No.", NoSeriesMgmt.GetNextNo(recJwelleryParameter."Tag Split No. series",WorkDate()));
+            NoSeriesMgmt.SaveState();
+        end;
+    end;
