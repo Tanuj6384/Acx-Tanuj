@@ -1,0 +1,122 @@
+/////////////////////////////////////////////////////////////// Look in bottom page ext for more info 
+//----------------------------------------------------------------------------
+              if ILE1.FindSet() then
+                    repeat
+                        CASE ILE1."Planning Location type" OF
+                            ILE1."Planning Location type"::Outlet:
+                                outletqty += ILE1."Remaining Quantity";
+                            ILE1."Planning Location type"::Depo:
+                                depoletqty += ILE1."Remaining Quantity";
+                            ILE1."Planning Location type"::Warehouse:
+                                warehouseqty += ILE1."Remaining Quantity";
+                        END;
+                    until ILE1.Next() = 0;
+
+//---------------------------------------------------------------------
+
+            if salesinvline.FindSet() then begin
+                    repeat
+                        case salesinvline."Gen. Bus. Posting Group" of
+                            'DOMESTIC':
+                                Domesticqty += salesinvline."Outstanding Quantity";
+                            'FOREIGN', 'EU':
+                                foreuqty += salesinvline."Outstanding Quantity";
+                        end;
+                    until salesinvline.Next() = 0;
+                end;
+//---------------------------------------------------------------------
+
+//////////////////////////////////////////////////////////////
+pageextension 90102 "GL Entries Source Name Ext" extends "General Ledger Entries"
+{
+    layout
+    {
+        addafter("Source Code")
+        {
+
+            field("Source Name"; SourceName)
+            {
+                Caption = 'Source Name';
+                ApplicationArea = All;
+            }
+        }
+
+
+        modify("Source No.")
+        {
+
+            Visible = true;
+        }
+    }
+    var
+        SourceName: Text[100];
+
+        Source_t: Code[20];
+        source_n: Enum "Gen. Journal Source Type";
+        GLAccName: Text[100];
+
+    trigger OnAfterGetRecord()
+    var
+        Cust: Record Customer;
+        Vend: Record Vendor;
+        FA: Record "Fixed Asset";
+        BankAccount: Record "Bank Account";
+        Employee: Record Employee;
+        rr: Report "Journal Voucher1";
+        GLEntryRec: Record "G/L Entry";
+        GLAcc: Record "G/L Account";
+        LastGLAccountName: Text[100];
+    begin
+
+
+        SourceName := '';
+
+        if Rec."Source Type" <> Rec."Source Type"::" " then begin
+            Case Rec."Source Type" of
+                Rec."Source Type"::Customer:
+                    If Cust.GET(Rec."Source No.") then
+                        SourceName := Cust.Name;
+                Rec."Source Type"::Vendor:
+                    If Vend.GET(Rec."Source No.") then
+                        SourceName := Vend.Name;
+                Rec."Source Type"::"Fixed Asset":
+                    If FA.GET(Rec."Source No.") then
+                        SourceName := FA.Description;
+                Rec."Source Type"::"Bank Account":
+                    If BankAccount.GET(Rec."Source No.") then
+                        SourceName := BankAccount.Name;
+                Rec."Source Type"::Employee:
+                    If Employee.GET(Rec."Source No.") then
+                        SourceName := Employee.FullName();
+            end
+
+        end
+        else begin
+
+            begin
+                GLEntryRec.Reset();
+                GLEntryRec.SetRange("Document No.", Rec."Document No.");
+                if GLEntryRec.FindSet() then begin
+                    repeat
+
+                        if GLAcc.GET(GLEntryRec."G/L Account No.") then
+                            LastGLAccountName := GLAcc.Name;
+
+                        if (GLEntryRec."Source No." <> '') and (GLEntryRec."Source Type" <> GLEntryRec."Source Type"::" ") then begin
+                            if Vend.GET(GLEntryRec."Source No.") then
+                                SourceName := Vend.Name
+                            else if Cust.GET(GLEntryRec."Source No.") then
+                                SourceName := Cust.Name;
+
+                            break;
+                        end;
+                    until GLEntryRec.Next() = 0;
+
+                    if SourceName = '' then
+                        SourceName := LastGLAccountName;
+                end;
+            end;
+        end;
+    end;
+}
+/////////////////////////////////////////////////////////////
