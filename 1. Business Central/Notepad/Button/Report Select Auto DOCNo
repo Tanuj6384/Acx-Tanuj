@@ -1,5 +1,0 @@
-
-PurchInvHeader.RESET;
-PurchInvHeader.SETRANGE("No.","No.");
-IF PurchInvHeader.FIND('-') THEN
-  REPORT.RUN(50090,TRUE,FALSE,PurchInvHeader);
