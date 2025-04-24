@@ -1,0 +1,15 @@
+//////////// warehouse Receipt Line --To--Item Leger Entry [mid Item Journal Line]
+  
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Purch.-Post", 'OnPostItemJnlLineOnAfterCopyDocumentFields', '', false, false)]
+    local procedure OnPostItemJnlLineOnAfterCopyDocumentFields(var ItemJournalLine: Record "Item Journal Line"; PurchaseLine: Record "Purchase Line"; WarehouseReceiptHeader: Record "Warehouse Receipt Header"; WarehouseShipmentHeader: Record "Warehouse Shipment Header"; PurchRcptHeader: Record "Purch. Rcpt. Header");
+    begin
+        ItemJournalLine."Plan Name" := PurchaseLine."Plan Name";
+        ItemJournalLine."Plan code" := PurchaseLine."Plan code";
+    end;
+
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Item Jnl.-Post Line", 'OnAfterInitItemLedgEntry', '', false, false)]
+    local procedure OnAfterInitItemLedgEntry(var NewItemLedgEntry: Record "Item Ledger Entry"; var ItemJournalLine: Record "Item Journal Line"; var ItemLedgEntryNo: Integer);
+    begin
+        NewItemLedgEntry."Plan code" := ItemJournalLine."Plan code";
+        NewItemLedgEntry."Plan Name" := ItemJournalLine."Plan name";
+    end;
