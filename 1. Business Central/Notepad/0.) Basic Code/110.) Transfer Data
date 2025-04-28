@@ -1,0 +1,56 @@
+//--------------------------------------------------------------------------------------
+//1.) Transfer Filed (Copy All)
+//--------------------------------------------------------------------------------------
+action(PostData)
+            {
+                ApplicationArea = All;
+                Caption = 'Post';
+                Image = Post;
+                Promoted = true;
+                PromotedCategory = Process;
+                trigger OnAction()
+                var
+                    PostedLotClosingDataRec: Record LotClosingPosted;
+                begin
+                    if not Confirm('You Want to Post') then
+                        exit;
+                    PostedLotClosingDataRec.Init();
+                    PostedLotClosingDataRec.TransferFields(Rec); // ✅ Correct function
+                    PostedLotClosingDataRec.Insert(true);
+                    Rec.Delete();
+                    Message('Lot Sheet Has been Posted Sucessfully');
+                end;
+            }
+
+---------------------------------------------------------------------------------------
+//2.) Transfer Filed using Validate
+//--------------------------------------------------------------------------------------
+
+actions
+    {
+        area(Processing)
+        {
+            action(ActionName)
+            {
+                Promoted = true;
+                PromotedCategory = Process;
+                Image = Post;
+                Caption = 'Post Employe';
+
+                trigger OnAction()
+                var
+                    PostedEmployeTableRec: Record PostedEmployeTable;
+                begin
+                    if not Confirm('Your Want to Post') then
+                        exit;
+                    PostedEmployeTableRec.Init();
+                    PostedEmployeTableRec.Validate("Emp Id", Rec."Emp Id");
+                    PostedEmployeTableRec.Validate("Emp Name", Rec."Emp Name");
+                    PostedEmployeTableRec.Validate("Emp Address", Rec."Emp Address");
+                    PostedEmployeTableRec.Insert(true); 
+                    Rec.Delete();
+                    Message('Sucessfully Trasnfer Pre To post Employe');
+                end;
+            }
+        }
+    }
