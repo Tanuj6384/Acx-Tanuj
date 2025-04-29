@@ -7,7 +7,7 @@
     "editor.fontWeight":"bold",
     
 }
-
+//--------------------------------------------------------
 {
     "files.autoSave": "afterDelay",
     "workbench.iconTheme": "vscode-icons",
