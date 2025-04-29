@@ -7,3 +7,13 @@
     "editor.fontWeight":"bold",
     
 }
+
+{
+    "files.autoSave": "afterDelay",
+    "workbench.iconTheme": "vscode-icons",
+    "editor.fontLigatures": false,
+    "editor.fontVariations": false,
+    "workbench.colorTheme": "Default Dark+",
+    "editor.fontWeight": "bold",
+    "editor.cursorBlinking": "blink",
+}
