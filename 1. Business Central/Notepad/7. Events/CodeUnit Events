@@ -136,3 +136,16 @@
     end;
  //...........................................Warehouse Receipt Line To Purchase Line...............................................................................
 
+######################################################################################################################
+   //....................Sales Line To Unit of Measure....................//
+    [EventSubscriber(ObjectType::Table, Database::"Sales Line", OnValidateUnitOfMeasureCodeOnAfterGetItemData, '', false, false)]
+    local procedure "Sales Line_OnValidateUnitOfMeasureCodeOnAfterGetItemData"(var SalesLine: Record "Sales Line"; xSalesLine: Record "Sales Line"; Item: Record Item)
+    var
+        ItemUnitOfMeasureRec: Record "Item Unit of Measure";
+        SalesLineDiscountRec: Record "Sales Line Discount";
+        UnitofMeasure: Record "Unit of Measure";
+        CalculateTax: Codeunit "Calculate Tax";
+    begin
+    end;
+//....................Sales Line To Unit of Measure....................//
+######################################################################################################################
