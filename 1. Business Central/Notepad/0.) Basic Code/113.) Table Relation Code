@@ -1,1 +1,21 @@
-sdjk
+-------------------------------------------------------
+Agar aap sirf active (Blocked = No) customers dikhana chahte ho:
+
+TableRelation = Customer."No." WHERE (Blocked = CONST(false));
+TableRelation = "Iappc Item Attribute Value"."Value Code" WHERE("Attribute Code" = CONST('MACHINE'));
+
+-------------------------------------------------------------------------
+Salesperson dikhana jiska Territory Code same ho customer ke Territory Code ke :
+
+TableRelation = "Salesperson/Purchaser"."Code" WHERE ("Territory Code" = FIELD("Territory Code"));
+TableRelation = Item."No." WHERE ("Item Category Code" = FIELD("Item Category Code"),"Blocked" = CONST(false), "Gen. Prod. Posting Group" = FILTER('RAW|SEMI'));
+-----------------------------------------------------------------------
+      TableRelation = IF(Type=CONST("G/L Account"))"G/L Account"
+            ELSE IF(Type=CONST(Item))Item
+            ELSE IF(Type=CONST("Fixed Asset"))"Fixed Asset"
+            ELSE IF(Type=CONST("Charge (Item)"))"Item Charge";
+--------------------------------------------------------------------------------------
+     TableRelation = IF ("Inward Invoice Type" = FILTER(Invoice)) "Purch. Inv. Header"."Vendor Invoice No." WHERE("Is Provision" = FILTER(false), "Freight Type" = FILTER(<> ' '), "Buy-from Vendor No." = FIELD("Inward Vendor No."))
+            ELSE IF ("Inward Invoice Type" = FILTER("Credit Memo")) "Purch. Cr. Memo Hdr."."Vendor Cr. Memo No.";
+            ValidateTableRelation = false;
+--------------------------------------------------------------------------------------
