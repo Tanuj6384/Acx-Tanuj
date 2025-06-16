@@ -1,0 +1,24 @@
+ local procedure CalculateTDSAmount()
+    var
+        recTDSSection: Record "TDS Section";
+        recTDSSetup: Record "Iappc TDS Setup";
+        recVendor: Record Vendor;
+    begin
+        "TDS Amount" := 0;
+        "TDS %" := 0;
+        if ("Account Type" = "Account Type"::Vendor) and ("Account No." <> '') and ("TDS Section Code" <> '') and ("Debit Amount" <> 0) and ("Bal. Account No." <> '') then begin
+            if "TDS Base Amount" = 0 then "TDS Base Amount" := "Debit Amount";
+            recTDSSection.Get(Rec."TDS Section Code");
+            recVendor.Get(Rec."Account No.");
+            recVendor.TestField("Assessee Code");
+            recTDSSetup.Reset();
+            recTDSSetup.SetRange("TDS Section", Rec."TDS Section Code");
+            recTDSSetup.SetRange("Assessee Code", recVendor."Assessee Code");
+            recTDSSetup.SetRange("Effective Date", 0D, Rec."Posting Date");
+            if recTDSSetup.FindLast() then
+                "TDS %" := recTDSSetup."TDS %";
+            "TDS Amount" := Round("TDS Base Amount" * "TDS %" / 100, 1);
+        end;
+    end;
+
+    /// Change With Tds rates table recTDSSetup
