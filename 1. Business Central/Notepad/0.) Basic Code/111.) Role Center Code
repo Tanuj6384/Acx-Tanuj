@@ -1,0 +1,28 @@
+    group("Quality Module")
+        {
+        Caption = 'Quality Module';
+
+                group("Quality Setup")
+                {
+                    Caption = 'Quality Setup';
+
+                    action(FieldMapping)
+                    {
+                        Caption = 'Field Mapping';
+                        ApplicationArea = all;
+                        RunObject = page "Field Mapping";
+                    }
+                 }
+
+                group("Quality Master")
+                {
+                    Caption = 'Quality Master';
+
+                    action(QualityParameters)
+                    {
+                        Caption = 'Quality Parameters';
+                        ApplicationArea = all;
+                        RunObject = page "Quality Parameters";
+                    }
+                 }
+        }
