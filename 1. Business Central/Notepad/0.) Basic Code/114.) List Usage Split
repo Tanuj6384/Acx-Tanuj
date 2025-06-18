@@ -1,0 +1,60 @@
+    local procedure OnAfterModifyTaxRate(var Rec: Record "Tax Rate")
+    var
+        TDSTable: Record "Iappc TDS Setup";
+        SetupParts: List of [Text];
+        TDSSection: Code[10];
+        AssesseeCode: Code[10];
+        EffectiveDateText: Text;
+        EffectiveDate: Date;
+        TDSPer: Decimal;
+    begin
+        // Message('Hi');
+        if Rec."Tax Setup ID" = '' then
+            exit;
+
+        // Split the value like: 194Q|COM|2025-06-12
+        SetupParts := Rec."Tax Setup ID".Split('|');
+
+        // Loop through and collect values carefully
+        if SetupParts.Count() >= 1 then
+            if SetupParts.Get(1) <> '' then
+                TDSSection := SetupParts.Get(1);
+
+        if SetupParts.Count() >= 2 then
+            if SetupParts.Get(2) <> '' then
+                AssesseeCode := SetupParts.Get(2);
+
+        if SetupParts.Count() >= 3 then
+            if SetupParts.Get(3) <> '' then
+                EffectiveDateText := SetupParts.Get(3);
+
+        // All 3 required fields must be non-blank
+        if (TDSSection = '') or (AssesseeCode = '') or (EffectiveDateText = '') then
+            exit;
+
+        // Convert date string
+        if not Evaluate(EffectiveDate, EffectiveDateText) then
+            exit;
+
+        // Prevent duplicate insert
+        TDSTable.Reset();
+        TDSTable.SetRange("TDS Section", TDSSection);
+        TDSTable.SetRange("Assessee Code", AssesseeCode);
+        // TDSTable.SetRange("Concessional Code", 'NA');
+        TDSTable.SetRange("Effective Date", EffectiveDate);
+
+        if TDSTable.FindFirst() then
+            exit;
+
+        // Insert into TDS Setup Table
+        TDSTable.Init();
+        TDSTable.Validate("TDS Section", TDSSection);
+        TDSTable.Validate("Assessee Code", AssesseeCode);
+        // TDSTable.Validate("Concessional Code", 'NA');
+        TDSTable.Validate("Effective Date", EffectiveDate);
+        TDSTable.Validate("TDS %", 10); // Example fixed % – change as needed
+        TDSTable.Insert(true);
+
+        // Message('✅ TDS Setup inserted: %1 | %2 | %3', TDSSection, AssesseeCode, Format(EffectiveDate));
+    end;
+    //Acx-Tk 180625 end;
