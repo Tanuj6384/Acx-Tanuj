@@ -1,0 +1,4 @@
+[EventSubscriber(ObjectType::Table, Database::"VAT Entry", OnAfterCopyFromGenJnlLine, '', false, false)]
+local procedure "OnAfterCopyFromGenJnlLine"(var VATEntry: Record "VAT Entry"; GenJournalLine: Record "Gen. Journal Line")
+begin
+end;
