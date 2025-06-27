@@ -1,0 +1,4 @@
+[EventSubscriber(ObjectType::Codeunit, Codeunit::"TransferOrder-Post Shipment", OnAfterInsertTransShptLine, '', false, false)]
+local procedure "OnAfterInsertTransShptLine"(var TransShptLine: Record "Transfer Shipment Line"; TransLine: Record "Transfer Line"; CommitIsSuppressed: Boolean; TransShptHeader: Record "Transfer Shipment Header")
+begin
+end;
