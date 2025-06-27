@@ -1,0 +1,7 @@
+Refer to 5.6 Gen. Journal Line (81) to FA Ledger Entry (5601) for posting from ‘Fixed Asset G/L Journals’ .
+This is ‘Fixed Asset Journals’ posting.
+
+[EventSubscriber(ObjectType::Codeunit, Codeunit::"Make FA Ledger Entry", OnAfterCopyFromFAJnlLine, '', false, false)]
+local procedure "OnAfterCopyFromFAJnlLine"(var FALedgerEntry: Record "FA Ledger Entry"; FAJournalLine: Record "FA Journal Line")
+begin
+end;
