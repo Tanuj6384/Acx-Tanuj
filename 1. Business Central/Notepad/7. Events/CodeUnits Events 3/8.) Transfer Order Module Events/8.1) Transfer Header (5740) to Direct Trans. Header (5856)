@@ -1,0 +1,4 @@
+[EventSubscriber(ObjectType::Codeunit, Codeunit::"TransferOrder-Post Transfer", OnAfterInsertDirectTransHeader, '', false, false)]
+local procedure "OnAfterInsertDirectTransHeader"(var DirectTransHeader: Record "Direct Trans. Header"; TransferHeader: Record "Transfer Header")
+begin
+end;
