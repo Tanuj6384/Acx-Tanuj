@@ -1,0 +1,4 @@
+[EventSubscriber(ObjectType::Table, Database::"Invoice Posting Buffer", OnAfterPreparePurchase, '', false, false)]
+local procedure "OnAfterPreparePurchase"(var PurchaseLine: Record "Purchase Line"; var InvoicePostingBuffer: Record "Invoice Posting Buffer" temporary)
+begin
+end;
