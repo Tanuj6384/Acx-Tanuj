@@ -1,0 +1,4 @@
+[EventSubscriber(ObjectType::Table, Database::"Item Journal Line", OnAfterCopyItemJnlLineFromPurchHeader, '', false, false)]
+local procedure "OnAfterCopyItemJnlLineFromPurchHeader"(var ItemJnlLine: Record "Item Journal Line"; PurchHeader: Record "Purchase Header")
+begin
+end;
