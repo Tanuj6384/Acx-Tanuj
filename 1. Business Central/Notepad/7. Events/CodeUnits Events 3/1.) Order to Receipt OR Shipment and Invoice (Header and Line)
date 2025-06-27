@@ -1,7 +1,6 @@
 When an order is posted, the standard event will run the ‘TransferFields’ function to copy the fields from source table to the target table. The function will take care of the transferring and there is no need to subscribe to any event as long as the Field ID is the same across the tables.
 
 To keep it clean, it will be best to use the same Field Name and Field Type to ensure the process smooth.
-
 //---------------------------------------------------------------------------------------------------------------
                     1.) Sales Header Archive (5107)     |                    1.) Sales Line Archive (5108) 
                     2.) Sales Shipment Header (110)     |                    2.) Sales Shipment Line (111)
