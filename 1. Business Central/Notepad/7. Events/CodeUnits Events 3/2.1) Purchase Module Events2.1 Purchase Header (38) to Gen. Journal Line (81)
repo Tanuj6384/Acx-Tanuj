@@ -1,0 +1,10 @@
+Refer to #5-Journal Events and #6-Item Events for posting to ledger.
+
+------------------------------------------------------------------------------------------------------------------------------------
+Purchase Header (38) to Gen. Journal Line (81)
+------------------------------------------------------------------------------------------------------------------------------------
+[EventSubscriber(ObjectType::Table, Database::"Gen. Journal Line", OnAfterCopyGenJnlLineFromPurchHeader, '', false, false)]
+local procedure "OnAfterCopyGenJnlLineFromPurchHeader"(PurchaseHeader: Record "Purchase Header"; var GenJournalLine: Record "Gen. Journal Line")
+begin
+GenJournalLine.Name := "Purchase Header".Name;
+end;
