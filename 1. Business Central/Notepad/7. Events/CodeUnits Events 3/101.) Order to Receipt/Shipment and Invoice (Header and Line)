@@ -1,0 +1,25 @@
+When an order is posted, the standard event will run the ‘TransferFields’ function to copy the fields from source table to the target table. The function will take care of the transferring and there is no need to subscribe to any event as long as the Field ID is the same across the tables.
+
+To keep it clean, it will be best to use the same Field Name and Field Type to ensure the process smooth.
+
+//---------------------------------------------------------------------------------------------------------------
+                    1.) Sales Header Archive (5107)     |                    1.) Sales Line Archive (5108) 
+                    2.) Sales Shipment Header (110)     |                    2.) Sales Shipment Line (111)
+Sales Header (36) : 3.) Return Receipt Header  (6660)   |  Sales Line (37) : 3.) Return Receipt Line  (6661) 
+                    4.) Sales Invoice Header (112)      |                    4.) Sales Invoice Line (113)
+                    5.) Sales Cr. Memo Header (114)     |                    5.) Sales Cr. Memo Line (115)
+//---------------------------------------------------------------------------------------------------------------
+
+
+//---------------------------------------------------------------------------------------------------------------
+                       1.) Purchase Header Archive (5109)     |                       1.) Purchase Line Archive (5110) 
+                       2.) Purch. Rcpt. Header (120)          |                       2.) Purch. Rcpt. Line (121)
+Purchase Header (38) : 3.) Return Shipment Header  (6650)     |  Purchase Line (39) : 3.) Return Shipment Line  (6651) 
+                       4.) Purch. Inv. Header (122)           |                       4.) Purch. Inv. Line (123)
+                       5.) Purch. Cr. Memo Hdr. (124)         |                       5.) Purch Cr. Memo Line (125)
+//---------------------------------------------------------------------------------------------------------------
+                    
+                    
+
+          
+                      
