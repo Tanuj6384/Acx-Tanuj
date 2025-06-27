@@ -1,0 +1,4 @@
+[EventSubscriber(ObjectType::Codeunit, Codeunit::"FA Jnl.-Post Line", OnBeforePostFixedAssetFromGenJnlLine, '', false, false)]
+local procedure "OnBeforePostFixedAssetFromGenJnlLine"(var GenJournalLine: Record "Gen. Journal Line"; var FALedgerEntry: Record "FA Ledger Entry"; FAAmount: Decimal; VATAmount: Decimal; GLRegisterNo: Integer)
+begin
+end;
