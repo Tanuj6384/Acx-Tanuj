@@ -1,0 +1,4 @@
+[EventSubscriber(ObjectType::Codeunit, Codeunit::"TransferOrder-Post Receipt", OnAfterInsertTransRcptHeader, '', false, false)]
+local procedure "OnAfterInsertTransRcptHeader"(var TransRcptHeader: Record "Transfer Receipt Header"; var TransHeader: Record "Transfer Header")
+begin
+end;
