@@ -1,0 +1,6 @@
+Refer to #5-Journal Events for posting to ledger.
+
+[EventSubscriber(ObjectType::Table, Database::"Invoice Posting Buffer", OnAfterCopyToGenJnlLine, '', false, false)]
+local procedure "OnAfterCopyToGenJnlLine"(var GenJnlLine: Record "Gen. Journal Line"; InvoicePostingBuffer: Record "Invoice Posting Buffer" temporary)
+begin
+end;
