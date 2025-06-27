@@ -1,0 +1,6 @@
+Refer to #5-Journal Events and #6-Item Events for posting to ledger.
+
+[EventSubscriber(ObjectType::Table, Database::"Gen. Journal Line", OnAfterCopyGenJnlLineFromSalesHeader, '', false, false)]
+local procedure "OnAfterCopyGenJnlLineFromSalesHeader"(SalesHeader: Record "Sales Header"; var GenJournalLine: Record "Gen. Journal Line")
+begin
+end;
