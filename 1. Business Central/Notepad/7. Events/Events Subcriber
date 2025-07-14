@@ -1,0 +1,12 @@
+//-----------------------------------------
+//Release Production Order
+//-----------------------------------------
+[EventSubscriber(ObjectType::Codeunit, codeunit::"Create Prod. Order Lines", 'OnBeforeProdOrderLineInsert', '', false, false)]
+    local procedure OnBeforeProdOrderLineInsert(var ProdOrderLine: Record "Prod. Order Line"; var ProductionOrder: Record "Production Order"; SalesLineIsSet: Boolean; var SalesLine: Record "Sales Line")
+    var
+        Item: Record Item;
+        q: page 99000832;
+    begin
+        ProdOrderLine.Validate("Unit of Measure Code", ProductionOrder."Prod. UOM");
+        ProdOrderLine.Validate("Routing No.", ProductionOrder."Routing No. New");
+    end;
