@@ -38,7 +38,7 @@ codeunit 60002 "Security Center Management"
         END;
     end;
 
-    
+
     /////////////////////////////Abhishek /////////////////////
     // procedure ApplyStoreSecurity(VAR lrecStore: Record "LSC Store";
     // VAR cdSecurityCtr: Code[20];
@@ -65,8 +65,23 @@ codeunit 60002 "Security Center Management"
             lrecLocation.FILTERGROUP(0);
         END;
     end;
+    //Acx-Tanuj Start
+    procedure ApplyMachineCenterSecurity(VAR lrecMachineCenter: Record "Machine Center";
+   VAR cdSecurityCtr: Code[20];
+   VAR cdSecurityCtrGD1: Code[20])
+    begin
+        GetSecurityFilter(cdSecurityCtr, cdSecurityCtrGD1);
+        IF cdSecurityCtr <> '' THEN BEGIN
+            lrecMachineCenter.FILTERGROUP(2);
+            cdSecurityCtr := '*;' + cdSecurityCtr + ';*';
+            lrecMachineCenter.SETFILTER("Security Center Codes", '%1|%2', cdSecurityCtr, cdSecurityCtrGD1);
+            lrecMachineCenter.FILTERGROUP(0);
+        END;
+    end;
+    //Acx-Tanuj Start
 
-     
+
+
 
     procedure ApplyCustSecurity(VAR lrecCustomer: Record Customer;
     VAR cdSecurityCtr: Code[20];
