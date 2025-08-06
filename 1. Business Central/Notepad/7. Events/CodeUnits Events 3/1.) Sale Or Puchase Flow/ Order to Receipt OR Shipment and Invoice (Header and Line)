@@ -6,7 +6,7 @@ To keep it clean, it will be best to use the same Field Name and Field Type to e
                     2.) Sales Shipment Header (110)     |                    2.) Sales Shipment Line (111)
 Sales Header (36) : 3.) Return Receipt Header  (6660)   |  Sales Line (37) : 3.) Return Receipt Line  (6661) 
                     4.) Sales Invoice Header (112)      |                    4.) Sales Invoice Line (113)
-                    5.) Sales Cr. Memo Header (114)     |                    5.) Sales Cr. Memo Line (115)
+                    5.) Sales Cr.Memo Header (114)     |                    5.) Sales Cr. Memo Line (115)
 //---------------------------------------------------------------------------------------------------------------
 
 
