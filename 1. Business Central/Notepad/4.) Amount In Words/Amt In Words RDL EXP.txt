@@ -296,3 +296,12 @@ End Function
 
 ****/ First letter is Capital after samall
 =StrConv(Code.RupeesToWord(Fields!GrandTotal.Value,"","Paisa"), VbStrConv.ProperCase)
+
+=StrConv(Code.RupeesToWord(
+    Round(
+        Sum(Fields!Line_Amount.Value) 
+        + Sum(Fields!SGST_Amt.Value) 
+        + Sum(Fields!CGST_Amt.Value) 
+        + Sum(Fields!IGST_Amt.Value)
+    ,0)
+,"","Paisa"), 3)
