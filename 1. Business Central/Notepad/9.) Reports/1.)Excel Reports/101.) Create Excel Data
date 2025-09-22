@@ -1,0 +1,72 @@
+report 60031 "FA Register"
+{
+    ApplicationArea = All;
+    Caption = 'FA Register';
+    UsageCategory = ReportsAndAnalysis;
+    dataset
+    {
+        dataitem(FixedAsset; "Fixed Asset")
+        {
+        }
+    }
+    requestpage
+    {
+        layout
+        {
+            area(Content)
+            {
+                group(GroupName)
+                {
+                }
+            }
+        }
+
+    }
+
+    trigger OnPreReport()
+    begin
+
+        ExcelBuffer.DeleteAll();
+        MakeHeaders();
+    end;
+
+    trigger OnPostReport()
+    begin
+        CreateExcelBook();
+    end;
+
+    procedure MakeHeaders()
+    begin
+        ExcelBuffer.NewRow();
+        ExcelBuffer.AddColumn('Entry No.', false, '', true, false, false, '', ExcelBuffer."Cell Type"::Text);
+        ExcelBuffer.AddColumn('Account Type', false, '', true, false, false, '', ExcelBuffer."Cell Type"::Text);
+        ExcelBuffer.AddColumn('Account No.', false, '', true, false, false, '', ExcelBuffer."Cell Type"::Text);
+        ExcelBuffer.AddColumn('Posting Date', false, '', true, false, false, '', ExcelBuffer."Cell Type"::Text);
+        ExcelBuffer.AddColumn('Location  code', false, '', true, false, false, '', ExcelBuffer."Cell Type"::Text);
+    end;
+
+    procedure MakeBody()
+    begin
+        ExcelBuffer.NewRow;
+        ExcelBuffer.AddColumn("TDS Entry"."Entry No.", false, '', false, false, false, '', ExcelBuffer."Cell Type"::Number);
+        ExcelBuffer.AddColumn("TDS Entry"."Account Type", false, '', false, false, false, '', ExcelBuffer."Cell Type"::Text);
+        ExcelBuffer.AddColumn("TDS Entry"."Account No.", false, '', false, false, false, '', ExcelBuffer."Cell Type"::Text);
+        ExcelBuffer.AddColumn("TDS Entry"."Posting Date", false, '', false, false, false, '', ExcelBuffer."Cell Type"::Date);
+        ExcelBuffer.AddColumn(loccode, false, '', false, false, false, '', ExcelBuffer."Cell Type"::Text);
+    end;
+
+    Procedure CreateExcelBook()
+    begin
+        ExcelBuffer.CreateNewBook('FA Register');
+        ExcelBuffer.WriteSheet('FA Register', CompanyName, UserId);
+        ExcelBuffer.CloseBook();
+        ExcelBuffer.SetFriendlyFilename('FA Register');
+        ExcelBuffer.OpenExcel();
+    end;
+
+
+    var
+        ExcelBuffer: Record "Excel Buffer" temporary;
+
+}
+
