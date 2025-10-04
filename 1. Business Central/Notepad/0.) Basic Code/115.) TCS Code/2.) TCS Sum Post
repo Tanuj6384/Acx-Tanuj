@@ -1,5 +1,6 @@
   column(TCSAmount;TCSAmount){}
-  
+
+Trigger On AfterGetRecord  (In Data item Line in Last)
  GetTCSAmountsHeader("Sales Invoice Header");
   
 -------------------------------------------------------------
