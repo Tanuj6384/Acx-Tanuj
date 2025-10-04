@@ -1,0 +1,40 @@
+
+Column(TcsAmount;TcsAmount) {}
+
+Trigger On AfterGetRecord  (In Data item Line in Last)
+GetTCSAmountsHeader("Sales Header");
+
+
+-----------------------------------------------------
+ local procedure GetTCSAmountsHeader(SalesHeader: Record "Sales Header")
+    var
+        TaxTransactionValueRec: Record "Tax Transaction Value";
+        GSTSetup: Record "GST Setup";
+        SalesLineRec: record "Sales Line";
+    begin
+        SalesLineRec.Reset();
+        SalesLineRec.SetRange("Document Type", SalesHeader."Document Type");
+        SalesLineRec.SetRange("Document No.", SalesHeader."No.");
+        if SalesLineRec.FindSet() then
+            repeat
+                TaxTransactionValueRec.Reset();
+                TaxTransactionValueRec.SetRange("Tax Record ID", SalesLineRec.RecordId);
+                TaxTransactionValueRec.SetRange("Tax Type", 'TCS');
+                TaxTransactionValueRec.SetRange("Value Type", TaxTransactionValueRec."Value Type"::COMPONENT);
+                TaxTransactionValueRec.SetFilter(Percent, '<>%1', 0);
+                if TaxTransactionValueRec.FindSet() then
+                    repeat
+                        case TaxTransactionValueRec."Value ID" of
+                            1:
+                                begin
+                                    TaxTransactionValueRec.CalcSums(Amount);
+                                    TcsAmount += Round(TaxTransactionValueRec.Amount, 1);
+                                end;
+
+                        end;
+                    until TaxTransactionValueRec.Next() = 0;
+            until SalesLineRec.Next() = 0;
+    end;
+---------------------------------------------------------------------------
+var
+TcsAmount:Decimal;
