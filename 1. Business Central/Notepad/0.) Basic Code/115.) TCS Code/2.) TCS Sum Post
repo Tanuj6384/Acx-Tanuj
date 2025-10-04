@@ -1,0 +1,28 @@
+  column(TCSAmount;TCSAmount){}
+  
+ GetTCSAmountsHeader("Sales Invoice Header");
+  
+-------------------------------------------------------------
+  local procedure GetTCSAmountsHeader(SalesHeader: Record "Sales Invoice Header")
+    var
+     TaxTransactionValue1: Record "Tax Transaction Value";
+     
+    Begin
+       Clear(TCSAmount);
+       Clear(TCSPer);
+       TaxTransactionValue.Reset();
+       TaxTransactionValue.SetRange("Tax Record ID", "Sales Invoice Line".RecordId);
+       TaxTransactionValue.SetRange("Value Type", TaxTransactionValue."Value Type"::COMPONENT);
+       TaxTransactionValue.SetFilter(Percent, '<>%1', 0);
+       TaxTransactionValue.SetFilter("Tax Type", 'TDS|TCS');
+         if not TaxTransactionValue.IsEmpty() then begin
+                TaxTransactionValue.CalcSums(Amount);
+                TCSAmount := TaxTransactionValue.Amount;
+                TTCS += TCSAmount;
+                TCSPer += TaxTransactionValue.Percent;
+          end;
+    End;
+
+-------------------------------------------------------------
+Var
+TCSAmount: Decimal;
