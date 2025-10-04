@@ -27,3 +27,4 @@ Trigger On AfterGetRecord  (In Data item Line in Last)
 -------------------------------------------------------------
 Var
 TCSAmount: Decimal;
+TCSPer:Decimal;
