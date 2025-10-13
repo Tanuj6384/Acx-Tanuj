@@ -6,12 +6,12 @@
 
   TdsAmount := 0;
   TdsRate := 0;
-  recPurchInline.Reset();
-  recPurchInline.SetRange("Document No.", "Purch. Inv. Line"."Document No.");
-  recPurchInline.SetRange("Line No.", "Purch. Inv. Line"."Line No.");
-  if recPurchInline.FindFirst() then begin
+  PurchInvoiceLine.Reset();
+  PurchInvoiceLine.SetRange("Document No.", "Purch. Inv. Line"."Document No.");
+  PurchInvoiceLine.SetRange("Line No.", "Purch. Inv. Line"."Line No.");
+  if PurchInvoiceLine.FindFirst() then begin
     TaxTransactionValue.Reset();
-    TaxTransactionValue.SetRange("Tax Record ID", recPurchInline.RecordId);
+    TaxTransactionValue.SetRange("Tax Record ID", PurchInvoiceLine.RecordId);
     TaxTransactionValue.SetRange("Tax Type", 'TDS');
     TaxTransactionValue.SetRange("Value Type", TaxTransactionValue."Value Type"::COMPONENT);
     TaxTransactionValue.SetFilter(Percent, '<>%1', 0);
@@ -25,7 +25,7 @@ Var
 TdsAmount :Decimal;
 TdsRate :Decimal;
 TaxTransactionValue: Record "Tax Transaction Value";
-recPurchInline: Record "Purch. Inv. Line";
+PurchInvoiceLine: Record "Purch. Inv. Line";
 //////////////////////// TDS CODE LINE WISE ////////////////////////////////////
 
 
