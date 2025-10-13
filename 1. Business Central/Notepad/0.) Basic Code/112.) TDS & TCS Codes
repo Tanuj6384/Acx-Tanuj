@@ -50,8 +50,8 @@ PurchInvoiceLineRec: Record "Purch. Inv. Line";
                     end;
 ------------------------------------------------------------
    Var
-    TdsAmount :Decimal;
-    TdsRate :Decimal;
+    TCSAmount :Decimal;
+    TCSRate :Decimal;
     TaxTransactionValue: Record "Tax Transaction Value";
     SaleInvoiceLineRec: Record "Sale Invoice Header";
 
