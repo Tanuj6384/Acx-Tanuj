@@ -1,3 +1,41 @@
+
+
+//////////////////////// TDS CODE LINE WISE ////////////////////////////////////
+-----------------------------------------------------
+ trigger OnAfterGetRecord() // In Line
+
+  TdsAmount := 0;
+  TdsRate := 0;
+  recPurchInline.Reset();
+  recPurchInline.SetRange("Document No.", "Purch. Inv. Line"."Document No.");
+  recPurchInline.SetRange("Line No.", "Purch. Inv. Line"."Line No.");
+  if recPurchInline.FindFirst() then begin
+    TaxTransactionValue.Reset();
+    TaxTransactionValue.SetRange("Tax Record ID", recPurchInline.RecordId);
+    TaxTransactionValue.SetRange("Tax Type", 'TDS');
+    TaxTransactionValue.SetRange("Value Type", TaxTransactionValue."Value Type"::COMPONENT);
+    TaxTransactionValue.SetFilter(Percent, '<>%1', 0);
+    if TaxTransactionValue.FindSet() then Begin
+    TdsAmount := TaxTransactionValue.Amount;
+    TdsRate := TaxTransactionValue.Percent;
+          End;
+    end;
+------------------------------------------------------------
+Var
+TdsAmount :Decimal;
+TdsRate :Decimal;
+TaxTransactionValue: Record "Tax Transaction Value";
+recPurchInline: Record "Purch. Inv. Line";
+//////////////////////// TDS CODE LINE WISE ////////////////////////////////////
+
+
+
+
+
+
+
+
+
 ----------------------------------------------------------------------------
 In Page Start
 -----------------------------------------------------------------------------
