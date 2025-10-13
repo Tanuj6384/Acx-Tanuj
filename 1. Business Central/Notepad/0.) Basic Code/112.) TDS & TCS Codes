@@ -6,12 +6,12 @@
 
   TdsAmount := 0;
   TdsRate := 0;
-  PurchInvoiceLine.Reset();
-  PurchInvoiceLine.SetRange("Document No.", "Purch. Inv. Line"."Document No.");
-  PurchInvoiceLine.SetRange("Line No.", "Purch. Inv. Line"."Line No.");
-  if PurchInvoiceLine.FindFirst() then begin
+  PurchInvoiceLineRec.Reset();
+  PurchInvoiceLineRec.SetRange("Document No.", "Purch. Inv. Line"."Document No.");
+  PurchInvoiceLineRec.SetRange("Line No.", "Purch. Inv. Line"."Line No.");
+  if PurchInvoiceLineRec.FindFirst() then begin
     TaxTransactionValue.Reset();
-    TaxTransactionValue.SetRange("Tax Record ID", PurchInvoiceLine.RecordId);
+    TaxTransactionValue.SetRange("Tax Record ID", PurchInvoiceLineRec.RecordId);
     TaxTransactionValue.SetRange("Tax Type", 'TDS');
     TaxTransactionValue.SetRange("Value Type", TaxTransactionValue."Value Type"::COMPONENT);
     TaxTransactionValue.SetFilter(Percent, '<>%1', 0);
@@ -25,10 +25,37 @@ Var
 TdsAmount :Decimal;
 TdsRate :Decimal;
 TaxTransactionValue: Record "Tax Transaction Value";
-PurchInvoiceLine: Record "Purch. Inv. Line";
+PurchInvoiceLineRec: Record "Purch. Inv. Line";
 //////////////////////// TDS CODE LINE WISE ////////////////////////////////////
 
 
+//////////////////////// TCS CODE LINE WISE ////////////////////////////////////
+------------------------------------------------------------
+ trigger OnAfterGetRecord() // In Line
+
+        TCSAmount := 0;
+        // TCSRate := 0;
+        SaleInvoiceLineRec.Reset();
+        SaleInvoiceLineRec.SetRange("Document No.", "Sales Invoice Line"."Document No.");
+        SaleInvoiceLineRec.SetRange("Line No.", "Sales Invoice Line"."Line No.");
+        if SaleInvoiceLineRec.FindFirst() then begin
+            TaxTransactionValue.Reset();
+            TaxTransactionValue.SetRange("Tax Record ID", SaleInvoiceLineRec.RecordId);
+            TaxTransactionValue.SetRange("Tax Type", 'TCS');
+            TaxTransactionValue.SetRange("Value Type", TaxTransactionValue."Value Type"::COMPONENT);
+            TaxTransactionValue.SetFilter(Percent, '<>%1', 0);
+                if TaxTransactionValue.FindSet() then
+                     TCSAmount := TaxTransactionValue.Amount;
+                        // TCSRate := TaxTransactionValue.Percent;
+                    end;
+------------------------------------------------------------
+   Var
+    TdsAmount :Decimal;
+    TdsRate :Decimal;
+    TaxTransactionValue: Record "Tax Transaction Value";
+    SaleInvoiceLineRec: Record "Sale Invoice Header";
+
+//////////////////////// TCS CODE LINE WISE ////////////////////////////////////
 
 
 
