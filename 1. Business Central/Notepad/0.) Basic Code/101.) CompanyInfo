@@ -1,5 +1,5 @@
 column(ComopanyName; ComopanyInfoRec.Name) { }
-column(ComopanyAddress; ComopanyInfoRec.Address + '' + ComopanyInfoRec."Address 2" + '' + ComopanyInfoRec.City + '' + ComopanyInfoRec."Post Code") { }
+column(ComopanyAddress; ComopanyInfoRec.Address + '' + ComopanyInfoRec."Address 2" + '' + ComopanyInfoRec.City + ' ' + ComopanyInfoRec."Post Code") { }
 
 -----------------------------------
  Trigger OnAfterGetRecord()
