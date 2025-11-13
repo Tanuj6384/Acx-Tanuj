@@ -1,0 +1,18 @@
+Rec."Employee Name" := (EmployeeRec."First Name" + ' ' + EmployeeRec."Middle Name" + ' ' + EmployeeRec."Last Name");
+
+//////////////////////////////////////
+    local procedure RemoveSpace(InValues: Text): Text
+    begin
+        // Remove leading, trailing, and duplicate spaces
+        exit(DelChr(InValues, '<>', ' '));
+    end;
+//////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////
+ procedure RemoveExtraSpacesLocal(inStr: Text[250]): Text[250];
+  begin
+   exit(inStr.Trim());
+  end;
+
+//////////////////////////////////////
