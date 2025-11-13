@@ -1,5 +1,26 @@
 ////////////////////////////////////////////////////////////////////
 -------------------------------------------------------------------
+* For Header Comments Pick The Comments In Purchase Comments Line
+------------------------------------------------------------------
+                Comment2 := '';
+                PurchCommentLine.Reset();
+                PurchCommentLine.SetRange("No.", "Purchase Header"."No.");
+                if PurchCommentLine.FindFirst() then begin
+                    repeat
+                        if comment2 <> '' then
+                            comment2 += '|';
+                        Comment2 := PurchCommentLine.Comment;
+                    until PurchCommentLine.Next() = 0;
+                end;
+              --------------------------------------------
+             var
+               PurchCommentLine: Record "Purch. Comment Line"; 
+               comment: Text[80];
+               
+////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////
+-------------------------------------------------------------------
 * For Split Line Wise Comments Pick The Comments In Purchase Comments Line
 ------------------------------------------------------------------
                     Clear(TB);
