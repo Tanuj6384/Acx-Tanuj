@@ -1,0 +1,48 @@
+////////////////////////////////////////////////////////////////////
+-------------------------------------------------------------------
+* For Split Line Wise Comments Pick The Comments In Purchase Comments Line
+------------------------------------------------------------------
+                    Clear(TB);
+                    Counter := 1;
+
+                    PurchaseCommentLine.Reset();
+                    PurchaseCommentLine.SetRange("No.", "Purchase Line"."Document No.");
+                    PurchaseCommentLine.SetRange("Document Line No.", 0);
+                    if PurchaseCommentLine.FindSet() then
+                        repeat
+                            TB.AppendLine(Format(Counter) + '. ' + Format(PurchaseCommentLine.Comment));
+                            Counter += 1;
+                        until PurchaseCommentLine.Next() = 0;
+
+                    LineComment := TB.ToText();
+                --------------------------------------------
+                Var
+                   LineComment: Text;
+                   PurchaseCommentLine: Record "Purch. Comment Line";
+                   TB: TextBuilder;
+                   Counter: Integer;
+////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////
+-------------------------------------------------------------------
+* For Line Comments Pick The Comments In Purchase Comments Line
+------------------------------------------------------------------
+                Clear(LineCommentRef);
+                PurchaseCommentLine.Reset();
+                PurchaseCommentLine.SetRange("No.", "Purchase Line"."Document No.");
+                PurchaseCommentLine.SetRange("Document Line No.", "Purchase Line"."Line No.");
+                if PurchaseCommentLine.FindSet() then begin
+                    repeat
+                        if LineCommentRef <> '' then
+                            LineCommentRef += '|'; // separator between multiple comments
+                        LineCommentRef += PurchaseCommentLine.Comment; // append comment text
+                    until PurchaseCommentLine.Next() = 0;
+                end;
+                --------------------------------------------
+                Var
+                   LineCommentRef: Text;
+                   PurchaseCommentLine: Record "Purch. Comment Line";
+////////////////////////////////////////////////////////////////////
+
