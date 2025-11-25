@@ -1,0 +1,5 @@
+STEP 1. Delete Permission
+STEP 2. ctrl+shft+B
+STEP 3. ctrl+shft+P >> click [Generate Permission al object containg current extension object]
+STEP 4. Open APP.json Verison +1
+STEP 5. ctrl+shft+B
