@@ -1,0 +1,43 @@
+ action(TaxInvoice)
+            {
+                Promoted = true;
+                ApplicationArea = All;
+                Image = Print;
+                PromotedCategory = Category6;
+                PromotedIsBig = true;
+                trigger OnAction()
+                var
+                    SalesHdr: Record "Sales Invoice Header";
+                    RecRef: RecordRef;
+                    TempBlob: Codeunit "Temp Blob";
+                    OutStr: OutStream;
+                    InStr: InStream;
+                    FileName: Text;
+                begin
+                    // Get Posted Sales Invoice
+                    SalesHdr.Reset();
+                    SalesHdr.SetRange("No.", Rec."No.");
+                    if SalesHdr.FindFirst() then begin
+
+                        // Create file name
+                        FileName := SalesHdr."No." + '.pdf';
+
+                        // VERY IMPORTANT → clear blob
+                        Clear(TempBlob);
+
+                        // Create OutStream
+                        TempBlob.CreateOutStream(OutStr);
+
+                        // Convert record to RecordRef
+                        RecRef.GetTable(SalesHdr);
+
+                        // Generate PDF into blob
+                        Report.SaveAs(60008, '', ReportFormat::Pdf, OutStr, RecRef);
+
+                        // Create InStream for download
+                        TempBlob.CreateInStream(InStr);
+
+                        // Download file with custom name
+                        DownloadFromStream(InStr, '', '', '', FileName);
+                    end;
+                end;
