@@ -15,7 +15,7 @@ Sales Header (36) : 3.) Return Receipt Header  (6660)   |  Sales Line (37) : 3.)
                        2.) Purch. Rcpt. Header (120)          |                       2.) Purch. Rcpt. Line (121)
 Purchase Header (38) : 3.) Return Shipment Header  (6650)     |  Purchase Line (39) : 3.) Return Shipment Line  (6651) 
                        4.) Purch. Inv. Header (122)           |                       4.) Purch. Inv. Line (123)
-                       5.) Purch. Cr. Memo Hdr. (124)         |                       5.) Purch Cr. Memo Line (125)
+                       5.) Purch. Cr. Memo Hdr. (124)         |                       5.) Purch. Cr. Memo Line (125)
 //---------------------------------------------------------------------------------------------------------------
                     
                     
