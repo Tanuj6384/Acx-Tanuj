@@ -1,0 +1,51 @@
+codeunit 60100 Dimension
+{
+    permissions = tabledata "Dimension Set Entry" = rimd;
+
+    procedure DimensionValueCreateSet(SH: Record "Sales Header")
+    var
+        recDimensionValue: Record "Dimension Value";
+        recDimSetEntry: Record "Dimension Set Entry";
+    begin
+        // ==================== CREATE DIMENSION VALUE ==============================
+        recDimensionValue.Reset();
+        recDimensionValue.SetRange("Dimension Code", 'SALES ORDER');
+        recDimensionValue.SetRange(Code, SH."No."); 
+        if not recDimensionValue.FindFirst() then begin
+            recDimensionValue.Init();
+            recDimensionValue.Validate("Dimension Code", 'SALES ORDER');
+            recDimensionValue.Validate(Code, SH."No.");
+            recDimensionValue.Validate(Name, 'SALES ORDER - ' + SH."No.");
+            recDimensionValue.Insert(true);
+        end;
+
+        // ==================== INSERT DIMENSION IN SALES ORDER ========================
+        recDimSetEntry.Reset();
+        recDimSetEntry.SetRange("Dimension Set ID", SH."Dimension Set ID");
+        recDimSetEntry.SetRange("Dimension Code", 'SALES ORDER');
+        if not recDimSetEntry.FindFirst() then begin
+            recDimSetEntry.Init();
+            recDimSetEntry.Validate("Dimension Set ID", SH."Dimension Set ID");
+            recDimSetEntry.Validate("Dimension Code", 'SALES ORDER');
+            recDimSetEntry.Validate("Dimension Value Code", SH."No.");
+            recDimSetEntry.Insert(true);
+        end else begin
+            recDimSetEntry.Validate("Dimension Value Code", SH."No.");
+            recDimSetEntry.Modify();
+        end;
+
+    end;
+}
+
+------------------------
+CALL THIS
+          trigger OnAfterValidate()
+            var
+                DimensionValueCreateSet: Codeunit Customization;
+            begin
+
+                Dimension.DimensionValueCreateSet(SH);
+
+            end;
+        }
+       
