@@ -1,0 +1,61 @@
+----------------------------------------------------
+E-Waybill QR Code Generate
+----------------------------------------------------
+
+report 60048 EWayBillQRReport
+{
+    ApplicationArea = All;
+    Caption = 'Hello';
+    UsageCategory = ReportsAndAnalysis;
+    DefaultLayout = RDLC;
+    RDLCLayout = 'src\Layout\EWayBillQRReport.rdl';
+
+    dataset
+    {
+        dataitem(SalesInvHeader; "Sales Invoice Header")
+        {
+            RequestFilterFields = "No.";
+
+            column(E_Way_Bill_No_; "E-Way Bill No.") { } //no needs
+            column(QRCodeBase64; QRCodeBase64) { }
+
+
+            trigger OnAfterGetRecord()
+            var
+                QRText: Text;
+            begin
+                QRText :=
+                    "E-Way Bill No." + '/' +
+                    "Location GST Reg. No." + '\n' +
+                    Format("ACK Date");
+
+                GenerateQRCode(QRText);
+            end;
+        }
+    }
+
+    var
+        QRCodeBase64: Text;
+        QRGen: Codeunit "QR Generator";
+        TempBlob: Codeunit "Temp Blob";
+        Base64Convert: Codeunit "Base64 Convert";
+        InStr: InStream;
+
+
+    local procedure GenerateQRCode(Value: Text)
+    begin
+        Clear(QRCodeBase64);
+        QRGen.GenerateQRCodeImage(Value, TempBlob);
+        TempBlob.CreateInStream(InStr);
+        QRCodeBase64 := Base64Convert.ToBase64(InStr);
+    end;
+}
+
+
+////////////////////////////////////////////////////////////////
+Step in RDL Layout
+1: Select the image Source = Database
+2: use this field = {=System.Convert.FromBase64String(Fields!QRCodeBase64.Value)} paste this exp {...}
+3: use this MIME type =image/png
+///////////////////////////////////////////////////////////////
+
