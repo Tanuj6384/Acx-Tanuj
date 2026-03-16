@@ -1,0 +1,48 @@
+1.) ////////////Purchase Order Page/////////
+--------------------------------------------------------------------
+  addafter(AttachAsPDF)
+        {
+            action("Purchase Order Print")
+            {
+                Promoted = true;
+                ApplicationArea = All;
+                Image = Print;
+                PromotedCategory = Report;
+                PromotedIsBig = true;
+                trigger OnAction()
+                var
+                    PurchaseHead: Record "Purchase header";
+                begin
+                    PurchaseHead.SetRange("No.", Rec."No.");
+                    if PurchaseHead.FindFirst() then begin
+                        Report.Run(50002, true, true, PurchaseHead);
+                    end;
+                end;
+            }
+        }
+  --------------------------------------------------------------------
+
+2.) //////////Posted Sales Invoice/////////////////////////////////////////////
+--------------------------------------------------------------------------------
+ addafter(AttachAsPDF)
+        {
+            action("Tax Invoice Print")
+            {
+                Promoted = true;
+                ApplicationArea = All;
+                Image = Print;
+                PromotedCategory = Category6;
+                PromotedIsBig = true;
+
+                trigger OnAction()
+                var
+                    SalesHdr: Record "Sales Invoice Header";
+                begin
+                    SalesHdr.RESET;
+                    SalesHdr.SETRANGE("No.", Rec."No.");
+                    IF SalesHdr.FIND('-') THEN
+                        Report.Run(Report::"Tax Invoice", true, true, SalesHdr);
+                end;
+            }
+        }
+--------------------------------------------------------------------------------
