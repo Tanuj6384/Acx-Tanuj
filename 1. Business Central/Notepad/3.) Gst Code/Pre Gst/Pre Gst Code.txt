@@ -52,13 +52,18 @@
   // Gst End
 //----------------------------------------------------------------------------------------------------------
 
- 	TaxTransactionValue: Record "Tax Transaction Value";
+   TaxTransactionValue: Record "Tax Transaction Value";
         TaxTrnasactionValue1: Record "Tax Transaction Value";
         GSTComponentCode: array[20] of Integer;
         Item1: Record Item;
         j: Integer;
         Taxper: Decimal;
 
+        GSTComponentCodeHeader: array[20] of Code[10];
+        GSTCompAmountHeader: array[20] of Decimal;
+        GSTComponentCodeLine: array[20] of Code[10];
+        GSTCompAmountLine: array[20] of Decimal;
+        GSTCompPercentLine: array[20] of Decimal;
 
         DetailedGSTEntryBuffer: Record "Detailed GST Ledger Entry";
         IGST_Perc: Decimal;
@@ -67,7 +72,7 @@
         CGST_Amt: Decimal;
         SGST_Perc: Decimal;
         SGST_Amt: Decimal;
-        Total_Value: Decimal;
+        TotalGstAmount: Decimal;
 
 
 //----------------------------------------------------------------------------------------------------------
