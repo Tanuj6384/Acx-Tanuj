@@ -1,0 +1,66 @@
+//----------------------------------------------------------------------------------------------------------   
+  // Gst Start
+//----------------------------------------------------------------------------------------------------------
+  trigger OnAfterGetRecord()
+  begin
+
+IGST_Perc := 0;
+CGST_Perc := 0;
+SGST_Perc := 0;
+
+IGST_Amt := 0;
+CGST_Amt := 0;
+SGST_Amt := 0;
+
+DetailedGSTEntryBuffer.Reset();
+DetailedGSTEntryBuffer.SetRange("Transaction Type", DetailedGSTEntryBuffer."Transaction Type"::Sales); //Change sale/Purchase
+DetailedGSTEntryBuffer.SetRange("Document No.","Purchase Line"."No."); //
+
+// 🔥 IMPORTANT (अगर line level चाहिए तो uncomment करो)
+// DetailedGSTEntryBuffer.SetRange("Document Line No.", "Line No.");
+
+IF DetailedGSTEntryBuffer.FindSet() THEN
+    REPEAT
+        CASE DetailedGSTEntryBuffer."GST Component Code" OF
+
+            'IGST':
+                BEGIN
+                    IGST_Amt += DetailedGSTEntryBuffer."GST Amount";
+                    IGST_Perc := DetailedGSTEntryBuffer."GST %";
+                END;
+
+            'CGST':
+                BEGIN
+                    CGST_Amt += DetailedGSTEntryBuffer."GST Amount";
+                    CGST_Perc := DetailedGSTEntryBuffer."GST %";
+                END;
+
+            'SGST':
+                BEGIN
+                    SGST_Amt += DetailedGSTEntryBuffer."GST Amount";
+                    SGST_Perc := DetailedGSTEntryBuffer."GST %";
+                END;
+
+        END;
+    UNTIL DetailedGSTEntryBuffer.Next() = 0;
+
+// ✅ Final Calculation
+TotalGstperc := IGST_Perc + CGST_Perc + SGST_Perc;
+TotalGstAmount := IGST_Amt + CGST_Amt + SGST_Amt;
+//---------------------------------------------------------------------------------------------------------------  
+ 	 // Gst End
+//---------------------------------------------------------------------------------------------------------------
+Var
+ DetailedGSTEntryBuffer: Record "Detailed GST Ledger Entry";
+        IGST_Perc: Decimal;
+        IGST_Amt: Decimal;
+        CGST_Perc: Decimal;
+
+        CGST_Amt: Decimal;
+        SGST_Perc: Decimal;
+        SGST_Amt: Decimal;
+
+        GSTPerTotal: Decimal;
+
+        TotalGstAmount: Decimal;
+        TotalGstperc: Decimal;
