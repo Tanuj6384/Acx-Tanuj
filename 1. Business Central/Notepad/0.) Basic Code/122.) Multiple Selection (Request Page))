@@ -1,0 +1,59 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+requestpage
+    {
+        layout
+        {
+            area(Content)
+            {
+                group("Select Filter")
+                {
+                    field(PurchaseOrderNo; PurchaseOrderNo)
+                    {
+                        ApplicationArea = All;
+                        Caption = 'Purchase Order No.';
+
+                        trigger OnLookup(var Text: Text): Boolean
+                        var
+                            recPurchaseHeader: Record "Purchase Header";
+                            PurchaseOrderListPage: Page "Purchase Order List";
+                            SelectedFilter: Text;
+                        begin
+                            // 1. Pehle filters clear karein aur basic criteria lagayein
+                            recPurchaseHeader.Reset();
+                            PurchaseOrderListPage.SetTableView(recPurchaseHeader);
+                            PurchaseOrderListPage.LookupMode(true);
+                            recPurchaseHeader.SetAscending("No.", false);
+                            if PurchaseOrderListPage.RunModal() = Action::LookupOK then begin
+                                // 3. Ye function un saare records ko filter kar dega jo aapne select kiye hain
+                                PurchaseOrderListPage.SetSelectionFilter(recPurchaseHeader);
+                                if recPurchaseHeader.FindSet() then begin
+                                    SelectedFilter := '';
+                                    repeat
+                                        // 4. Sabhi Order numbers ko pipe (|) se jodte rahein
+                                        if SelectedFilter = '' then
+                                            SelectedFilter := recPurchaseHeader."No."
+                                        else
+                                            SelectedFilter += '|' + recPurchaseHeader."No.";
+                                    until recPurchaseHeader.Next() = 0;
+                                    // Final result string: "SO001|SO002|SO003"
+                                    PurchaseOrderNo := SelectedFilter;
+                                end
+                            end;
+                        end;
+                    }
+               }
+            }
+        }
+    }
+/////////////////////////////////////////////////////////////////////////////////////////////
+   trigger OnPreDataItem()
+            begin
+                if PurchaseOrderNo <> '' then
+                    "Purchase Header".SetFilter("Order No.", PurchaseOrderNo);
+            end;
+
+////////////////////////////////////////////////////////////////////////////////////////////
+var
+PurchaseOrderNo: Text;
+
+                 
