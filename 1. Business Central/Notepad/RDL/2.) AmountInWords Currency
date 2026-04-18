@@ -3,13 +3,240 @@
 //-------------------------------------------------------------------------------------------
 //////////////////////////////////////////////////////////////////////////////
 //-------------------------------------------------------------------------------------------
-Public Function AmountInWords(ByVal Amount As Decimal, ByVal CurrCode As String) As String
-    If CurrCode = "INR" OR CurrCode = "" Then
-        Return RupeesToWord(Amount, "Rupees", "Paisa")
-    Else
-        Return CurrCode & " " & CStr(Amount) & " Only"
+Public Function BlankZero(ByVal Value As Decimal) As Object
+    If Value = 0 Then
+        Return ""
     End If
+    Return Value
 End Function
+
+Public Function BlankPos(ByVal Value As Decimal) As Object
+    If Value > 0 Then
+        Return ""
+    End If
+    Return Value
+End Function
+
+Public Function BlankZeroAndPos(ByVal Value As Decimal) As Object
+    If Value >= 0 Then
+        Return ""
+    End If
+    Return Value
+End Function
+
+Public Function BlankNeg(ByVal Value As Decimal) As Object
+    If Value < 0 Then
+        Return ""
+    End If
+    Return Value
+End Function
+
+Public Function BlankNegAndZero(ByVal Value As Decimal) As Object
+    If Value <= 0 Then
+        Return ""
+    End If
+    Return Value
+End Function
+
+Public Function AmountInWords(ByVal MyNumber As Object, ByVal CurrencyCode As String) As String
+    Dim Curr As String
+    Dim SubCurr As String
+
+    Select Case UCase(Trim(CurrencyCode))
+        Case "INR", ""
+            Curr = "Rupees"
+            SubCurr = "Paisa"
+        Case "USD"
+            Curr = "Dollars"
+            SubCurr = "Cents"
+        Case "EUR"
+            Curr = "Euros"
+            SubCurr = "Cents"
+        Case "GBP"
+            Curr = "Pounds"
+            SubCurr = "Pence"
+        Case "AED"
+            Curr = "Dirhams"
+            SubCurr = "Fils"
+        Case "SAR"
+            Curr = "Riyals"
+            SubCurr = "Halalas"
+        Case Else
+            Curr = CurrencyCode
+            SubCurr = "Cents"
+    End Select
+
+    Return RupeesToWord(MyNumber, Curr, SubCurr)
+End Function
+
+Public Function RupeesToWord(ByVal MyNumber As Object, ByVal curr As String, ByVal subcurr As String) As String
+    Dim Temp As String
+    Dim Paisa As String = ""
+    Dim DecimalPlace As Integer
+    Dim iCount As Integer
+    Dim Hundreds As String = ""
+    Dim Words As String = ""
+    Dim place(9) As String
+
+    place(0) = " Thousand "
+    place(2) = " Lakh "
+    place(4) = " Crore "
+    place(6) = " Arab "
+    place(8) = " Kharab "
+
+    MyNumber = Trim(Str(CDec(MyNumber)))
+    DecimalPlace = InStr(MyNumber, ".")
+
+    If DecimalPlace > 0 Then
+        Temp = Left(Mid(MyNumber, DecimalPlace + 1) & "00", 2)
+
+        If Val(Temp) > 0 Then
+            Paisa = " and " & ConvertTens(Temp) & " " & subcurr
+        Else
+            Paisa = ""
+        End If
+
+        MyNumber = Trim(Left(MyNumber, DecimalPlace - 1))
+    End If
+
+    Dim TM As String
+    TM = Right(CStr(MyNumber), 2)
+
+    If Len(CStr(MyNumber)) > 0 And Len(CStr(MyNumber)) <= 2 Then
+        If Len(TM) = 1 Then
+            Words = ConvertDigit(TM)
+            Return curr & " " & Words & Paisa & " Only"
+        ElseIf Len(TM) = 2 Then
+            Words = ConvertTens(TM)
+            Return curr & " " & Words & Paisa & " Only"
+        End If
+    End If
+
+    Hundreds = ConvertHundreds(Right(CStr(MyNumber), 3))
+    MyNumber = Left(CStr(MyNumber), Len(CStr(MyNumber)) - 3)
+
+    iCount = 0
+    Do While CStr(MyNumber) <> ""
+        Temp = Right(CStr(MyNumber), 2)
+
+        If Len(CStr(MyNumber)) = 1 Then
+            If Trim(Words) = "Thousand" Or _
+               Trim(Words) = "Lakh Thousand" Or _
+               Trim(Words) = "Lakh" Or _
+               Trim(Words) = "Crore" Or _
+               Trim(Words) = "Crore Lakh Thousand" Or _
+               Trim(Words) = "Arab Crore Lakh Thousand" Or _
+               Trim(Words) = "Arab" Or _
+               Trim(Words) = "Kharab Arab Crore Lakh Thousand" Or _
+               Trim(Words) = "Kharab" Then
+
+                Words = ConvertDigit(Temp) & place(iCount)
+                MyNumber = Left(CStr(MyNumber), Len(CStr(MyNumber)) - 1)
+            Else
+                Words = ConvertDigit(Temp) & place(iCount) & Words
+                MyNumber = Left(CStr(MyNumber), Len(CStr(MyNumber)) - 1)
+            End If
+        Else
+            If Trim(Words) = "Thousand" Or _
+               Trim(Words) = "Lakh Thousand" Or _
+               Trim(Words) = "Lakh" Or _
+               Trim(Words) = "Crore" Or _
+               Trim(Words) = "Crore Lakh Thousand" Or _
+               Trim(Words) = "Arab Crore Lakh Thousand" Or _
+               Trim(Words) = "Arab" Then
+
+                Words = ConvertTens(Temp) & place(iCount)
+                MyNumber = Left(CStr(MyNumber), Len(CStr(MyNumber)) - 2)
+            Else
+                If Trim(ConvertTens(Temp) & place(iCount)) = "Lakh" Or _
+                   Trim(ConvertTens(Temp) & place(iCount)) = "Crore" Or _
+                   Trim(ConvertTens(Temp) & place(iCount)) = "Arab" Then
+
+                    MyNumber = Left(CStr(MyNumber), Len(CStr(MyNumber)) - 2)
+                Else
+                    Words = ConvertTens(Temp) & place(iCount) & Words
+                    MyNumber = Left(CStr(MyNumber), Len(CStr(MyNumber)) - 2)
+                End If
+            End If
+        End If
+
+        iCount = iCount + 2
+    Loop
+
+    Return curr & " " & Words & Hundreds & Paisa & " Only"
+End Function
+
+Private Function ConvertHundreds(ByVal MyNumber As String) As String
+    Dim Result As String = ""
+
+    If Val(MyNumber) = 0 Then
+        Return ""
+    End If
+
+    MyNumber = Right("000" & MyNumber, 3)
+
+    If Left(MyNumber, 1) <> "0" Then
+        Result = ConvertDigit(Left(MyNumber, 1)) & " Hundred "
+    End If
+
+    If Mid(MyNumber, 2, 1) <> "0" Then
+        Result = Result & ConvertTens(Mid(MyNumber, 2))
+    Else
+        Result = Result & ConvertDigit(Mid(MyNumber, 3))
+    End If
+
+    Return Trim(Result)
+End Function
+
+Private Function ConvertTens(ByVal MyTens As String) As String
+    Dim Result As String = ""
+
+    If Val(Left(MyTens, 1)) = 1 Then
+        Select Case Val(MyTens)
+            Case 10 : Result = "Ten"
+            Case 11 : Result = "Eleven"
+            Case 12 : Result = "Twelve"
+            Case 13 : Result = "Thirteen"
+            Case 14 : Result = "Fourteen"
+            Case 15 : Result = "Fifteen"
+            Case 16 : Result = "Sixteen"
+            Case 17 : Result = "Seventeen"
+            Case 18 : Result = "Eighteen"
+            Case 19 : Result = "Nineteen"
+        End Select
+    Else
+        Select Case Val(Left(MyTens, 1))
+            Case 2 : Result = "Twenty "
+            Case 3 : Result = "Thirty "
+            Case 4 : Result = "Forty "
+            Case 5 : Result = "Fifty "
+            Case 6 : Result = "Sixty "
+            Case 7 : Result = "Seventy "
+            Case 8 : Result = "Eighty "
+            Case 9 : Result = "Ninety "
+        End Select
+
+        Result = Result & ConvertDigit(Right(MyTens, 1))
+    End If
+
+    Return Trim(Result)
+End Function
+
+Private Function ConvertDigit(ByVal MyDigit As String) As String
+    Select Case Val(MyDigit)
+        Case 1 : Return "One"
+        Case 2 : Return "Two"
+        Case 3 : Return "Three"
+        Case 4 : Return "Four"
+        Case 5 : Return "Five"
+        Case 6 : Return "Six"
+        Case 7 : Return "Seven"
+        Case 8 : Return "Eight"
+        Case 9 : Return "Nine"
+        Case Else : Return ""
+    End Select
+End Function
+
 //-------------------------------------------------------------------------------------------
 //////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -18,18 +245,24 @@ End Function
 
 
 STEP 2: GO to field Exp and paste according to fields and Create column in dataset [Currency_Code]
+Amounts in Word
 /////////////////////////////////////////////////////////////////////////////////////////////
 //-------------------------------------------------------------------------------------------
 //////////////////////////////////////////////////////////////////////////////
 //-------------------------------------------------------------------------------------------
-=UCase(Code.AmountInWords(
-    Round(
-        Sum(Fields!Line_Amount.Value) 
-        + Sum(Fields!SGST_Amt.Value) 
-        + Sum(Fields!CGST_Amt.Value) 
-        + Sum(Fields!IGST_Amt.Value)
-    ,0),
-Fields!Currency_Code.Value))
+=IIF(
+Fields!Currency_Code.Value = "",
+Round(
+Sum(Fields!Line_Amount.Value) +
+Sum(Fields!SGST_Amt.Value) +
+Sum(Fields!CGST_Amt.Value) +
+Sum(Fields!IGST_Amt.Value),0),
+
+Sum(Fields!Line_Amount.Value) +
+Sum(Fields!SGST_Amt.Value) +
+Sum(Fields!CGST_Amt.Value) +
+Sum(Fields!IGST_Amt.Value)
+)
 //-------------------------------------------------------------------------------------------
 //////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
