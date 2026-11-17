@@ -1,0 +1,7 @@
+Flow	                         Table
+
+Purchase Receipt	             121 – Purch. Rcpt. Line
+Purchase Invoice	             123 – Purch. Inv. Line
+Purchase Credit Memo	         125 – Purch. Cr. Memo Line
+Purchase Return Shipment	     6651 – Return Shipment Line
+Purchase Line Archive	         5107 – Purchase Line Archive
